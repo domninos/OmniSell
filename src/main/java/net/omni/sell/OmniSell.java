@@ -1,8 +1,10 @@
 package net.omni.sell;
 
+import net.omni.sell.commands.SellCommand;
 import net.omni.sell.hooks.ExcellentEconomyHook;
 import net.omni.sell.managers.DatabaseManager;
 import net.omni.sell.managers.MessagesManager;
+import net.omni.sell.managers.PortalManager;
 import net.omni.sell.managers.PricesManager;
 import net.omni.sell.util.*;
 import org.bukkit.Bukkit;
@@ -46,6 +48,11 @@ public final class OmniSell extends JavaPlugin {
     private PricesManager pricesManager;
     private SellConfig pricesConfig;
 
+    private PortalManager portalManager;
+    private SellConfig portalsConfig;
+
+    private SellCommand sellCommand;
+
     private ConfigUtil configUtil;
 
     @Override
@@ -54,6 +61,7 @@ public final class OmniSell extends JavaPlugin {
         configUtil.flush();
         messagesManager.flush();
         pricesManager.flush();
+        portalManager.flush();
 
         databaseManager.closePool();
 
@@ -73,6 +81,10 @@ public final class OmniSell extends JavaPlugin {
         this.pricesConfig = new SellConfig(this, "prices.yml");
         this.pricesManager = new PricesManager(this);
         pricesManager.loadPrices();
+
+        this.portalsConfig = new SellConfig(this, "portals.yml");
+        this.portalManager = new PortalManager(this);
+        portalManager.loadPortals();
 
         this.configUtil = new ConfigUtil(this);
         configUtil.load();
@@ -109,6 +121,8 @@ public final class OmniSell extends JavaPlugin {
     }
 
     private void registerCommands() {
+        this.sellCommand = new SellCommand(this);
+        sellCommand.register();
     }
 
     private void registerListeners() {
@@ -148,5 +162,13 @@ public final class OmniSell extends JavaPlugin {
 
     public SellConfig getPricesConfig() {
         return pricesConfig;
+    }
+
+    public PortalManager getPortalManager() {
+        return portalManager;
+    }
+
+    public SellConfig getPortalsConfig() {
+        return portalsConfig;
     }
 }

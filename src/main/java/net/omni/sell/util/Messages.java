@@ -11,10 +11,23 @@ public enum Messages {
     USAGE("usage", "<red>Invalid arguments. Usage: %usage%</red>"),
     UNKNOWN_COMMAND("unknown_cmd", "<red>Unknown command.</red>"),
 
-    GIVE_SUCCESS("give_success", "<green>Successfully gave %player% a chunk hopper."),
-    GIVE_ERROR("give.error", "<red>Could not give %player% a chunk hopper. Please check logs.</red>"),
+    GIVE_SUCCESS("give_success", "<green>Successfully gave %player% a sell portal."),
+    GIVE_ERROR("give.error", "<red>Could not give %player% a sell portal. Please check logs.</red>"),
 
-    RELOADED("reloaded", "<green>config.yml and messages.yml have been reloaded.</green>");
+    RELOADED("reloaded", "<green>config.yml, messages.yml, prices.yml, and portals.yml have been reloaded.</green>"),
+
+    PORTAL_LIST_HEADER("portal_list_header", "\n<dark_gray>▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪</dark_gray>\n  <gradient:#00AAFF:#55FFFF>Sell Portals</gradient>\n"),
+    PORTAL_LIST_ENTRY("portal_list_entry", "  <#00AAFF>%index%.</#00AAFF> <gray>%world%</gray> <dark_gray>at</dark_gray> <white>%x%,%y%,%z%</white> <dark_gray>-</dark_gray> %owner% %status%"),
+    PORTAL_LIST_FOOTER("portal_list_footer", "<dark_gray>▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪</dark_gray>"),
+    PORTAL_LIST_EMPTY("portal_list_empty", "<gray>No portals found.</gray>"),
+    PORTAL_NOT_FOUND("portal_not_found", "<red>Portal not found at index %index%.</red>"),
+    PORTAL_TP_SUCCESS("portal_tp_success", "<green>Teleported to portal #%index%.</green>"),
+    PORTAL_DISABLED_GLOBAL("portal_disabled_global", "<red>All portals are currently disabled.</red>"),
+    PORTAL_DISABLED("portal_disabled", "<red>That portal is disabled.</red>"),
+    PORTAL_TOGGLE_GLOBAL("portal_toggle_global", "<green>Portals are now %state%.</green>"),
+    PORTAL_TOGGLE("portal_toggle", "<green>Portal #%index% is now %state%.</green>"),
+    PORTAL_ENABLED("portal_enabled", "<green>enabled</green>"),
+    PORTAL_DISABLED_STATUS("portal_disabled_status", "<red>disabled</red>");
 
     private final String path;
     private final Object defaultVal;

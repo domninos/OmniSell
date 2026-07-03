@@ -9,3 +9,9 @@ load: POSTWORLD
 softdepend: [ ExcellentEconomy, SuperiorSkyblock2 ]
 
 authors: [ domninos ]
+
+commands:
+  omnisell:
+    usage: /<command>
+    description: Base command for OmniSell
+    aliases: [osell, sellportal, sp]
