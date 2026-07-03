@@ -1,0 +1,19 @@
+# OmniSell prices
+# Define the sell price for each item material here.
+
+prices:
+  DIRT: 1.0
+  COBBLESTONE: 3.0
+  COAL: 5.0
+  COPPER_INGOT: 9.0
+  IRON_INGOT: 15.0
+  GOLD_INGOT: 25.0
+  REDSTONE: 40.0
+  LAPIS_LAZULI: 65.0
+  EMERALD: 100.0
+  DIAMOND: 160.0
+  AMETHYST_SHARD: 250.0
+  QUARTZ: 400.0
+  OBSIDIAN: 650.0
+  ANCIENT_DEBRIS: 1000.0
+  NETHERITE_INGOT: 1600.0
