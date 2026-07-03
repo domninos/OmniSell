@@ -3,6 +3,7 @@ package net.omni.sell;
 import net.omni.sell.hooks.ExcellentEconomyHook;
 import net.omni.sell.managers.DatabaseManager;
 import net.omni.sell.managers.MessagesManager;
+import net.omni.sell.managers.PricesManager;
 import net.omni.sell.util.*;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -42,6 +43,9 @@ public final class OmniSell extends JavaPlugin {
     private MessagesManager messagesManager;
     private SellConfig messagesConfig;
 
+    private PricesManager pricesManager;
+    private SellConfig pricesConfig;
+
     private ConfigUtil configUtil;
 
     @Override
@@ -49,6 +53,7 @@ public final class OmniSell extends JavaPlugin {
 
         configUtil.flush();
         messagesManager.flush();
+        pricesManager.flush();
 
         databaseManager.closePool();
 
@@ -64,6 +69,10 @@ public final class OmniSell extends JavaPlugin {
         this.messagesConfig = new SellConfig(this, "messages.yml");
         this.messagesManager = new MessagesManager(this);
         messagesManager.loadMessages();
+
+        this.pricesConfig = new SellConfig(this, "prices.yml");
+        this.pricesManager = new PricesManager(this);
+        pricesManager.loadPrices();
 
         this.configUtil = new ConfigUtil(this);
         configUtil.load();
@@ -131,5 +140,13 @@ public final class OmniSell extends JavaPlugin {
 
     public SellConfig getMessagesConfig() {
         return messagesConfig;
+    }
+
+    public PricesManager getPricesManager() {
+        return pricesManager;
+    }
+
+    public SellConfig getPricesConfig() {
+        return pricesConfig;
     }
 }
