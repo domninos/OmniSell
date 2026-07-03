@@ -1,6 +1,6 @@
 package net.omni.sell.managers;
 import net.omni.sell.OmniSell;
-import net.omni.sell.util.Messages;
+import net.omni.sell.messages.Messages;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.List;

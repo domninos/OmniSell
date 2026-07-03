@@ -1,7 +1,7 @@
 package net.omni.sell.handlers;
 
 import net.omni.sell.OmniSell;
-import net.omni.sell.util.ChatRenderer;
+import net.omni.sell.chat.ChatRenderer;
 import net.omni.sell.util.InventoryType;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -25,6 +25,7 @@ public class SellPortal {
     private final Inventory whitelistInventory;
     private final Inventory blacklistInventory;
 
+    private List<String> frameKeys = List.of();
     private boolean dirty = false;
 
     public SellPortal(Location location, UUID ownerUUID, int size, OmniSell plugin) {
@@ -76,6 +77,10 @@ public class SellPortal {
                         plugin.getConfigUtil().getBackButtonLore()));
     }
 
+    private ItemStack createItem(Material material, String name) {
+        return createItem(material, name, null);
+    }
+
     private ItemStack createItem(Material material, String name, List<String> lore) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
@@ -91,10 +96,6 @@ public class SellPortal {
         return item;
     }
 
-    private ItemStack createItem(Material material, String name) {
-        return createItem(material, name, null);
-    }
-
     public void loadItems(List<ItemStack> whitelist, List<ItemStack> blacklist) {
         fillSlots(whitelistInventory, whitelist, whitelistInventory.getSize() - 9);
         fillSlots(blacklistInventory, blacklist, blacklistInventory.getSize() - 9);
@@ -108,15 +109,45 @@ public class SellPortal {
         }
     }
 
-    public Location getLocation() { return location; }
-    public UUID getOwnerUUID() { return ownerUUID; }
-    public int getSize() { return size; }
-    public Inventory getMainInventory() { return mainInventory; }
-    public Inventory getWhitelistInventory() { return whitelistInventory; }
-    public Inventory getBlacklistInventory() { return blacklistInventory; }
+    public Location getLocation() {
+        return location;
+    }
 
-    public void markDirty() { this.dirty = true; }
-    public boolean isDirty() { return dirty; }
+    public UUID getOwnerUUID() {
+        return ownerUUID;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    public Inventory getMainInventory() {
+        return mainInventory;
+    }
+
+    public Inventory getWhitelistInventory() {
+        return whitelistInventory;
+    }
+
+    public Inventory getBlacklistInventory() {
+        return blacklistInventory;
+    }
+
+    public List<String> getFrameKeys() {
+        return frameKeys;
+    }
+
+    public void setFrameKeys(List<String> frameKeys) {
+        this.frameKeys = frameKeys;
+    }
+
+    public void markDirty() {
+        this.dirty = true;
+    }
+
+    public boolean isDirty() {
+        return dirty;
+    }
 
     public boolean shouldCollect(ItemStack item) {
         if (item == null || item.getType() == Material.AIR)
@@ -173,14 +204,6 @@ public class SellPortal {
                 InventoryType.WHITELIST);
     }
 
-    public Inventory buildBlacklistGUI() {
-        return buildFilterGUI(
-                plugin.getConfigUtil().getBlacklistSize(),
-                plugin.getConfigUtil().getBlacklistTitle(),
-                blacklistInventory,
-                InventoryType.BLACKLIST);
-    }
-
     private Inventory buildFilterGUI(int size, String title,
                                      Inventory filterSource, InventoryType type) {
         Inventory gui = renderer.createInventory(
@@ -207,12 +230,16 @@ public class SellPortal {
         return gui;
     }
 
-    public void applyWhitelistChanges(Inventory view) {
-        applyFilterChanges(view, whitelistInventory);
+    public Inventory buildBlacklistGUI() {
+        return buildFilterGUI(
+                plugin.getConfigUtil().getBlacklistSize(),
+                plugin.getConfigUtil().getBlacklistTitle(),
+                blacklistInventory,
+                InventoryType.BLACKLIST);
     }
 
-    public void applyBlacklistChanges(Inventory view) {
-        applyFilterChanges(view, blacklistInventory);
+    public void applyWhitelistChanges(Inventory view) {
+        applyFilterChanges(view, whitelistInventory);
     }
 
     private void applyFilterChanges(Inventory view, Inventory target) {
@@ -222,6 +249,10 @@ public class SellPortal {
         for (int i = limit; i < target.getSize() - 9; i++)
             target.setItem(i, null);
         this.dirty = true;
+    }
+
+    public void applyBlacklistChanges(Inventory view) {
+        applyFilterChanges(view, blacklistInventory);
     }
 
     public boolean isButtonSlot(int slot) {
@@ -248,7 +279,7 @@ public class SellPortal {
         List<ItemStack> blacklistItems = extractItems(blacklistInventory, blacklistInventory.getSize() - 9);
 
         plugin.getDatabaseManager().saveFullSync(
-                location, ownerUUID.toString(), size, whitelistItems, blacklistItems);
+                location, ownerUUID.toString(), size, frameKeys, whitelistItems, blacklistItems);
         dirty = false;
     }
 

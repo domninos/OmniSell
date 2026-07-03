@@ -1,4 +1,6 @@
-package net.omni.sell.util;
+package net.omni.sell.messages;
+
+import net.omni.sell.chat.ChatRenderer;
 
 import java.util.Arrays;
 

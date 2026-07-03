@@ -1,4 +1,4 @@
-package net.omni.sell.util;
+package net.omni.sell.chat;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.inventory.Inventory;

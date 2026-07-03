@@ -1,8 +1,8 @@
 package net.omni.sell.commands;
 
 import net.omni.sell.OmniSell;
-import net.omni.sell.util.MessageUtil;
-import net.omni.sell.util.Messages;
+import net.omni.sell.messages.MessageUtil;
+import net.omni.sell.messages.Messages;
 import net.omni.sell.handlers.SellPortal;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;

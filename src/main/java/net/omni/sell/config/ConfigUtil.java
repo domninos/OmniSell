@@ -1,4 +1,4 @@
-package net.omni.sell.util;
+package net.omni.sell.config;
 
 import net.omni.sell.OmniSell;
 import org.bukkit.Material;

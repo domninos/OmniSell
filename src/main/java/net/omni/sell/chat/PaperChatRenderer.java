@@ -1,4 +1,4 @@
-package net.omni.sell.util;
+package net.omni.sell.chat;
 
 
 import net.kyori.adventure.text.Component;

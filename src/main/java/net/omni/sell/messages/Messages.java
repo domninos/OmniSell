@@ -1,4 +1,4 @@
-package net.omni.sell.util;
+package net.omni.sell.messages;
 
 import java.util.ArrayList;
 import java.util.List;
