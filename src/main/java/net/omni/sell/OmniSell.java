@@ -3,6 +3,8 @@ package net.omni.sell;
 import net.omni.sell.commands.SellCommand;
 import net.omni.sell.handlers.SellItemHandler;
 import net.omni.sell.hooks.ExcellentEconomyHook;
+import net.omni.sell.listeners.GUIListener;
+import net.omni.sell.listeners.PortalListener;
 import net.omni.sell.managers.DatabaseManager;
 import net.omni.sell.managers.MessagesManager;
 import net.omni.sell.managers.PortalManager;
@@ -35,6 +37,12 @@ public final class OmniSell extends JavaPlugin {
             The portal upgrades:
              base: 3x3 and but have it configurable so if we wanna make it bigger we can
              sell boosters
+            .
+            softdepend SuperiorSkyblock2
+                if hooked, deposit to island balance
+                else, deposit to owner balance
+            .
+                make /sp list only show portal owned
      */
 
     private ChatRenderer chatRenderer;
@@ -50,7 +58,6 @@ public final class OmniSell extends JavaPlugin {
     private SellConfig pricesConfig;
 
     private PortalManager portalManager;
-    private SellConfig portalsConfig;
 
     private SellCommand sellCommand;
 
@@ -60,6 +67,7 @@ public final class OmniSell extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        portalManager.saveDirty();
 
         configUtil.flush();
         messagesManager.flush();
@@ -86,9 +94,10 @@ public final class OmniSell extends JavaPlugin {
         this.pricesManager = new PricesManager(this);
         pricesManager.loadPrices();
 
-        this.portalsConfig = new SellConfig(this, "portals.yml");
+        this.databaseManager = new DatabaseManager(this);
+        databaseManager.initDatabase();
+
         this.portalManager = new PortalManager(this);
-        portalManager.loadPortals();
 
         this.configUtil = new ConfigUtil(this);
         configUtil.load();
@@ -133,6 +142,8 @@ public final class OmniSell extends JavaPlugin {
     }
 
     private void registerListeners() {
+        new PortalListener(this).register();
+        new GUIListener(this).register();
     }
 
     public void sendConsole(String message) {
@@ -173,10 +184,6 @@ public final class OmniSell extends JavaPlugin {
 
     public PortalManager getPortalManager() {
         return portalManager;
-    }
-
-    public SellConfig getPortalsConfig() {
-        return portalsConfig;
     }
 
     public ChatRenderer getChatRenderer() {

@@ -3,8 +3,9 @@ package net.omni.sell.commands;
 import net.omni.sell.OmniSell;
 import net.omni.sell.util.MessageUtil;
 import net.omni.sell.util.Messages;
-import net.omni.sell.util.PortalData;
+import net.omni.sell.handlers.SellPortal;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -48,8 +49,8 @@ public class SellCommand implements CommandExecutor {
                 plugin.getConfigUtil().reloadConfig();
                 plugin.getMessagesManager().loadMessages();
                 plugin.getPricesManager().loadPrices();
-                plugin.getPortalManager().loadPortals();
                 plugin.getSellItemHandler().load();
+
 
                 plugin.sendMessage(sender, Messages.RELOADED.toString());
             } else if (args[0].equalsIgnoreCase("about"))
@@ -141,14 +142,15 @@ public class SellCommand implements CommandExecutor {
             return true;
         }
 
-        PortalData data = plugin.getPortalManager().getPortal(index);
+        List<SellPortal> portalList = plugin.getPortalManager().getPortals();
 
-        if (data == null) {
+        if (index < 0 || index >= portalList.size()) {
             plugin.sendMessage(sender, Messages.PORTAL_NOT_FOUND.replace("index", String.valueOf(index + 1)));
             return true;
         }
 
-        player.teleport(data.toLocation());
+        SellPortal portal = portalList.get(index);
+        player.teleport(portal.getLocation());
         plugin.sendMessage(sender, Messages.PORTAL_TP_SUCCESS.replace("index", String.valueOf(index + 1)));
         return true;
     }
@@ -164,7 +166,7 @@ public class SellCommand implements CommandExecutor {
             MessageUtil.append("omnisell <#55FFFF>help</#55FFFF>", "Shows this help menu.", helpBuilder);
 
             if (sender.hasPermission("omnisell.reload"))
-                MessageUtil.append("omnisell <#55FFFF>reload</#55FFFF>", "Reloads configs, messages, prices, and portals.", helpBuilder);
+                MessageUtil.append("omnisell <#55FFFF>reload</#55FFFF>", "Reloads configs, messages, and prices.", helpBuilder);
 
             MessageUtil.append("omnisell <#55FFFF>about</#55FFFF>", "Shows basic information about this plugin.", helpBuilder);
 
@@ -185,29 +187,27 @@ public class SellCommand implements CommandExecutor {
 
     private void sendPortalList(CommandSender sender) {
         StringBuilder listBuilder = new StringBuilder();
-        List<PortalData> portals = plugin.getPortalManager().getPortals();
+        List<SellPortal> portals = plugin.getPortalManager().getPortals();
 
-        listBuilder.append(Messages.PORTAL_LIST_HEADER.toString());
+        listBuilder.append(Messages.PORTAL_LIST_HEADER);
 
         if (portals.isEmpty()) {
             listBuilder.append("  ").append(Messages.PORTAL_LIST_EMPTY).append("\n");
         } else {
             for (int i = 0; i < portals.size(); i++) {
-                PortalData data = portals.get(i);
-                String status = data.isEnabled()
-                        ? Messages.PORTAL_ENABLED.toString()
-                        : Messages.PORTAL_DISABLED_STATUS.toString();
-                String ownerName = Bukkit.getOfflinePlayer(data.getOwner()).getName();
-                if (ownerName == null) ownerName = data.getOwner().toString().substring(0, 8) + "...";
+                SellPortal portal = portals.get(i);
+                Location loc = portal.getLocation();
+                String ownerName = Bukkit.getOfflinePlayer(portal.getOwnerUUID()).getName();
+                if (ownerName == null) ownerName = portal.getOwnerUUID().toString().substring(0, 8) + "...";
 
                 listBuilder.append(Messages.PORTAL_LIST_ENTRY.replace(
                         "index", String.valueOf(i + 1),
-                        "world", data.getWorldName(),
-                        "x", String.valueOf(data.getX()),
-                        "y", String.valueOf(data.getY()),
-                        "z", String.valueOf(data.getZ()),
+                        "world", loc.getWorld().getName(),
+                        "x", String.valueOf(loc.getBlockX()),
+                        "y", String.valueOf(loc.getBlockY()),
+                        "z", String.valueOf(loc.getBlockZ()),
                         "owner", ownerName,
-                        "status", status
+                        "status", Messages.PORTAL_ENABLED.toString()
                 )).append("\n");
             }
         }
@@ -222,13 +222,15 @@ public class SellCommand implements CommandExecutor {
         String version = plugin.getDescription().getVersion();
         String author = plugin.getDescription().getAuthors().getFirst();
         String githubUrl = "https://github.com/domninos/OmniSell";
+        String discordUrl = "https://discord.gg/7CuCtDHmQ3";
 
         return "<dark_gray>▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪</dark_gray>\n" +
                 "  <gradient:#00AAFF:#55FFFF><bold>" + pluginName + "</bold></gradient>\n\n" +
                 "  <yellow>Version:</yellow> <white>" + version + "</white>\n" +
                 "  <yellow>Author:</yellow> <aqua>" + author + "</aqua>\n\n" +
                 "  <white>Links: </white>" +
-                "<click:open_url:'" + githubUrl + "'><hover:show_text:'<gray>Click to view open-source code'><dark_purple>[GitHub]</dark_purple></hover></click>\n" +
+                "<click:open_url:'" + githubUrl + "'><hover:show_text:'<gray>Click to view open-source code'><dark_purple>[GitHub]</dark_purple></hover></click> " +
+                "<click:open_url:'" + discordUrl + "'><hover:show_text:'<gray>Click to join support community'><blue>[Discord]</blue></hover></click>\n" +
                 "<dark_gray>▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪</dark_gray>";
     }
 
@@ -263,18 +265,6 @@ public class SellCommand implements CommandExecutor {
                 StringUtil.copyPartialMatches(args[0], subcommands, completions);
 
                 return completions;
-            } else if (args.length == 2) {
-                if (args[0].equalsIgnoreCase("give") && sender.hasPermission("omnisell.give"))
-                    return null;
-
-                if (args[0].equalsIgnoreCase("tp") && sender.hasPermission("omnisell.tp")) {
-                    List<PortalData> portals = plugin.getPortalManager().getPortals();
-                    for (int i = 0; i < portals.size(); i++)
-                        completions.add(String.valueOf(i + 1));
-
-                    StringUtil.copyPartialMatches(args[1], completions, completions);
-                    return completions;
-                }
             } else if (args.length == 3) {
                 if (args[0].equalsIgnoreCase("give") && sender.hasPermission("omnisell.give"))
                     completions.add("[amount]");

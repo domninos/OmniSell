@@ -5,10 +5,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import su.nightexpress.excellenteconomy.api.ExcellentEconomyAPI;
-import su.nightexpress.excellenteconomy.api.currency.ExcellentCurrency;
 import su.nightexpress.excellenteconomy.api.currency.operation.NotificationTarget;
 import su.nightexpress.excellenteconomy.api.currency.operation.OperationContext;
-import su.nightexpress.excellenteconomy.user.CoinsUser;
+
+import java.util.Optional;
 
 public class ExcellentEconomyHook {
 
@@ -16,6 +16,8 @@ public class ExcellentEconomyHook {
 
     private boolean enabled = false;
     private ExcellentEconomyAPI api;
+    private OperationContext context;
+    private String currencyId;
 
     public ExcellentEconomyHook(OmniSell plugin) {
         this.plugin = plugin;
@@ -26,32 +28,26 @@ public class ExcellentEconomyHook {
 
         if (provider != null) {
             this.api = provider.getProvider();
-
-
+            this.context = OperationContext.custom("OmniSell")
+                    .silentFor(NotificationTarget.USER, NotificationTarget.EXECUTOR, NotificationTarget.CONSOLE_LOGGER);
+            this.currencyId = plugin.getConfig().getString("economy.currency", "coins");
             this.enabled = true;
 
-            OperationContext.custom("OmniSell")
-                    .silentFor(NotificationTarget.USER, NotificationTarget.EXECUTOR, NotificationTarget.CONSOLE_LOGGER);
-
-            plugin.sendConsole("<green>Successfully hooked into ExcellentEconomyAPI</green>");
-//            myContext.
+            plugin.sendConsole("<green>Successfully hooked into ExcellentEconomy</green>");
         }
     }
 
-    // USE FOR UPGRADING
-    public void removeMoney(Player player, ExcellentCurrency currency, int amount) {
-        if (!canPerform()) {
-            plugin.sendConsole("Could not remove money at this state.");
-            return;
-        }
+    public void addMoney(Player player, double amount) {
+        if (!canPerform()) return;
+        api.deposit(player, currencyId, amount, context);
+    }
 
-        CoinsUser user = api.getCachedUserData(player);
-
-        user.removeBalance(currency, amount);
+    public Optional<ExcellentEconomyAPI> getApi() {
+        return Optional.ofNullable(api);
     }
 
     public boolean canPerform() {
-        return isEnabled() && api.canPerformOperations();
+        return enabled && api.canPerformOperations();
     }
 
     public boolean isEnabled() {
