@@ -14,7 +14,7 @@ public enum Messages {
     GIVE_SUCCESS("give_success", "<green>Successfully gave %player% a sell portal."),
     GIVE_ERROR("give.error", "<red>Could not give %player% a sell portal. Please check logs.</red>"),
 
-    RELOADED("reloaded", "<green>config.yml, messages.yml, prices.yml, and portals.yml have been reloaded.</green>"),
+    RELOADED("reloaded", "<green>config.yml, messages.yml, and prices.yml have been reloaded.</green>"),
 
     PORTAL_LIST_HEADER("portal_list_header", "\n<dark_gray>▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪</dark_gray>\n  <gradient:#00AAFF:#55FFFF>Sell Portals</gradient>\n"),
     PORTAL_LIST_ENTRY("portal_list_entry", "  <#00AAFF>%index%.</#00AAFF> <gray>%world%</gray> <dark_gray>at</dark_gray> <white>%x%,%y%,%z%</white> <dark_gray>-</dark_gray> %owner% %status%"),
@@ -27,7 +27,10 @@ public enum Messages {
     PORTAL_TOGGLE_GLOBAL("portal_toggle_global", "<green>Portals are now %state%.</green>"),
     PORTAL_TOGGLE("portal_toggle", "<green>Portal #%index% is now %state%.</green>"),
     PORTAL_ENABLED("portal_enabled", "<green>enabled</green>"),
-    PORTAL_DISABLED_STATUS("portal_disabled_status", "<red>disabled</red>");
+    PORTAL_DISABLED_STATUS("portal_disabled_status", "<red>disabled</red>"),
+    PORTAL_NO_SPACE("portal_no_space", "<red>Not enough space to place the portal.</red>"),
+    PORTAL_CREATED("portal_created", "<green>Portal created!</green>"),
+    PORTAL_REMOVED("portal_removed", "<green>Portal removed.</green>");
 
     private final String path;
     private final Object defaultVal;
