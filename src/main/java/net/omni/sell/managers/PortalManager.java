@@ -1,10 +1,10 @@
 package net.omni.sell.managers;
 
 import net.omni.sell.OmniSell;
-import net.omni.sell.util.PortalData;
+import net.omni.sell.handlers.SellPortal;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -12,87 +12,83 @@ import java.util.stream.Collectors;
 public class PortalManager {
 
     private final OmniSell plugin;
-    private final Map<String, PortalData> portalCache = new LinkedHashMap<>();
     private final NamespacedKey sellPortalKey;
-    private boolean globallyEnabled = true;
+    private final NamespacedKey portalAnchorKey;
+    private final Map<Location, SellPortal> portalCache = new LinkedHashMap<>();
 
     public PortalManager(OmniSell plugin) {
         this.plugin = plugin;
         this.sellPortalKey = new NamespacedKey(plugin, "sell_portal");
-    }
-
-    public void loadPortals() {
-        flush();
-        plugin.getPortalsConfig().reload();
-
-        FileConfiguration config = plugin.getPortalsConfig().getConfig();
-
-        this.globallyEnabled = config.getBoolean("enabled", true);
-
-        ConfigurationSection portalsSection = config.getConfigurationSection("portals");
-        if (portalsSection == null) return;
-
-        for (String key : portalsSection.getKeys(false)) {
-            String ownerStr = portalsSection.getString(key + ".owner");
-            boolean enabled = portalsSection.getBoolean(key + ".enabled", true);
-
-            if (ownerStr == null) continue;
-
-            try {
-                UUID owner = UUID.fromString(ownerStr);
-                PortalData data = PortalData.fromKey(key, owner, enabled);
-                portalCache.put(key, data);
-            } catch (IllegalArgumentException ignored) {
-            }
-        }
+        this.portalAnchorKey = new NamespacedKey(plugin, "portal_anchor");
     }
 
     public NamespacedKey getSellPortalKey() {
         return sellPortalKey;
     }
 
+    public NamespacedKey getPortalAnchorKey() {
+        return portalAnchorKey;
+    }
+
     public boolean isGloballyEnabled() {
-        return globallyEnabled;
+        return plugin.getConfig().getBoolean("portals.enabled", true);
     }
 
-    public void setGloballyEnabled(boolean globallyEnabled) {
-        this.globallyEnabled = globallyEnabled;
-        plugin.getPortalsConfig().set("enabled", globallyEnabled);
+    public void setGloballyEnabled(boolean enabled) {
+        plugin.getConfig().set("portals.enabled", enabled);
+        plugin.saveConfig();
     }
 
-    public boolean isPortalEnabled(String key) {
-        if (!globallyEnabled) return false;
-        PortalData data = portalCache.get(key);
-        return data != null && data.isEnabled();
+    public void registerPortal(Location location, SellPortal portal) {
+        portalCache.put(location, portal);
     }
 
-    public List<PortalData> getPortals() {
+    public void unregisterPortal(Location location) {
+        portalCache.remove(location);
+    }
+
+    public SellPortal getPortal(Location location) {
+        return portalCache.get(location);
+    }
+
+    public boolean hasPortal(Location location) {
+        return portalCache.containsKey(location);
+    }
+
+    public List<SellPortal> getPortals() {
         return List.copyOf(portalCache.values());
     }
 
-    public PortalData getPortal(int index) {
-        List<PortalData> list = getPortals();
-        if (index < 0 || index >= list.size()) return null;
-        return list.get(index);
+    public List<SellPortal> getPortalsByOwner(UUID ownerUUID) {
+        return portalCache.values().stream()
+                .filter(p -> p.getOwnerUUID().equals(ownerUUID))
+                .collect(Collectors.toList());
     }
 
-    public PortalData getPortal(String key) {
-        return portalCache.get(key);
+    public void saveDirty() {
+        for (SellPortal portal : portalCache.values()) {
+            if (portal.isDirty())
+                portal.save();
+        }
     }
 
-    public void togglePortal(String key) {
-        PortalData data = portalCache.get(key);
-        if (data == null) return;
-        data.setEnabled(!data.isEnabled());
-        plugin.getPortalsConfig().set("portals." + key + ".enabled", data.isEnabled());
-    }
-
-    public void save() {
-        plugin.getPortalsConfig().save();
+    public void saveAndUnload(Chunk chunk) {
+        Iterator<Map.Entry<Location, SellPortal>> it = portalCache.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Location, SellPortal> entry = it.next();
+            Location loc = entry.getKey();
+            if (loc.getWorld().equals(chunk.getWorld())
+                    && chunk.getX() == loc.getBlockX() >> 4
+                    && chunk.getZ() == loc.getBlockZ() >> 4) {
+                SellPortal portal = entry.getValue();
+                if (portal.isDirty())
+                    portal.save();
+                it.remove();
+            }
+        }
     }
 
     public void flush() {
         portalCache.clear();
-        globallyEnabled = true;
     }
 }
