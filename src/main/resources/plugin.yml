@@ -2,9 +2,10 @@ name: OmniSell
 description: $description
 version: '${version}'
 
-main: net.omni.omniSell.OmniSell
-paperPluginLoader: net.omni.omniSell.OmniSellLoader
-api-version: '1.21.11'
+main: net.omni.sell.OmniSell
+api-version: '1.13'
 load: POSTWORLD
+
+softdepend: [ ExcellentEconomy, SuperiorSkyblock2 ]
 
 authors: [ domninos ]
