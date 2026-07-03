@@ -1,17 +1,17 @@
 package net.omni.sell.listeners;
 
+import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
+import com.bgsoftware.superiorskyblock.api.island.Island;
+import com.bgsoftware.superiorskyblock.api.island.bank.IslandBank;
 import net.omni.sell.OmniSell;
 import net.omni.sell.handlers.SellPortal;
-import net.omni.sell.util.Messages;
+import net.omni.sell.messages.Messages;
 import net.omni.sell.util.Prices;
-import org.bukkit.Chunk;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.TileState;
-import org.bukkit.block.data.type.EndPortalFrame;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
@@ -27,11 +27,10 @@ import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataContainer;
-import org.bukkit.persistence.PersistentDataType;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class PortalListener implements Listener {
 
@@ -78,7 +77,8 @@ public class PortalListener implements Listener {
             return;
         }
 
-        if (!generatePortalStructure(anchor, portalSize, player.getUniqueId())) {
+        List<String> frameKeys = generatePortalStructure(anchor, portalSize);
+        if (frameKeys == null) {
             event.setCancelled(true);
             plugin.sendMessage(player, "<red>Could not generate portal structure.</red>");
             return;
@@ -89,8 +89,9 @@ public class PortalListener implements Listener {
                 player.getInventory().getItemInMainHand().getAmount() - 1);
 
         SellPortal portal = new SellPortal(anchor, player.getUniqueId(), portalSize, plugin);
+        portal.setFrameKeys(frameKeys);
         plugin.getPortalManager().registerPortal(anchor, portal);
-        plugin.getDatabaseManager().saveFull(anchor, player.getUniqueId().toString(), portalSize, List.of(), List.of());
+        plugin.getDatabaseManager().saveFull(anchor, player.getUniqueId().toString(), portalSize, frameKeys, List.of(), List.of());
 
         plugin.sendMessage(player, Messages.PORTAL_CREATED.toString());
     }
@@ -116,18 +117,17 @@ public class PortalListener implements Listener {
         return true;
     }
 
-    private boolean generatePortalStructure(Location anchor, int portalSize, UUID ownerUUID) {
+    private List<String> generatePortalStructure(Location anchor, int portalSize) {
         World world = anchor.getWorld();
-        if (world == null) return false;
+        if (world == null) return null;
 
         int bx = anchor.getBlockX();
         int by = anchor.getBlockY();
         int bz = anchor.getBlockZ();
 
         int frameSide = portalSize + 2;
-        int nz = bz - frameSide + 1;
+        List<String> frameKeys = new ArrayList<>();
 
-        // Place frame blocks on the border
         for (int i = 0; i < frameSide; i++) {
             for (int j = 0; j < frameSide; j++) {
                 int x = bx + i;
@@ -138,30 +138,21 @@ public class PortalListener implements Listener {
                 boolean onWest = i == 0;
                 boolean onEast = i == frameSide - 1;
 
-                // Only place frame blocks on edges, not corners
                 boolean isEdge = (onSouth || onNorth || onWest || onEast);
                 boolean isCorner = (onSouth || onNorth) && (onWest || onEast);
 
                 if (isEdge && !isCorner) {
                     Block frameBlock = world.getBlockAt(x, by, z);
                     frameBlock.setType(Material.END_PORTAL_FRAME, false);
-
-                    BlockState state = frameBlock.getState();
-                    if (state instanceof org.bukkit.block.TileState tile) {
-                        PersistentDataContainer pdc = tile.getPersistentDataContainer();
-                        pdc.set(plugin.getPortalManager().getPortalAnchorKey(),
-                                PersistentDataType.STRING, locationKey(anchor));
-                        tile.update(true, false);
-                    }
+                    frameKeys.add(locationKey(frameBlock.getLocation()));
                 } else if (i > 0 && i < frameSide - 1 && j > 0 && j < frameSide - 1) {
-                    // Interior: fill with END_PORTAL
                     Block portalBlock = world.getBlockAt(x, by, z);
                     portalBlock.setType(Material.END_PORTAL, false);
                 }
             }
         }
 
-        return true;
+        return frameKeys;
     }
 
     private String locationKey(Location loc) {
@@ -173,12 +164,8 @@ public class PortalListener implements Listener {
         Block block = event.getBlock();
         if (block.getType() != Material.END_PORTAL_FRAME) return;
 
-        System.out.println("break");
-
         Location anchor = getAnchorFromBlock(block);
         if (anchor == null) return;
-
-        System.out.println("anchor found");
 
         Player player = event.getPlayer();
         SellPortal portal = plugin.getPortalManager().getPortal(anchor);
@@ -212,48 +199,10 @@ public class PortalListener implements Listener {
         plugin.sendMessage(player, Messages.PORTAL_REMOVED.toString());
     }
 
-    @EventHandler
-    public void onChunkLoad(ChunkLoadEvent event) {
-        Chunk chunk = event.getChunk();
-
-        for (BlockState state : chunk.getTileEntities()) {
-            if (state.getType() != Material.END_PORTAL_FRAME) continue;
-            if (!(state instanceof TileState tile)) continue;
-
-            PersistentDataContainer pdc = tile.getPersistentDataContainer();
-            String key = pdc.get(plugin.getPortalManager().getPortalAnchorKey(), PersistentDataType.STRING);
-            if (key == null) continue;
-
-            Location anchor = locationFromKey(key);
-            if (anchor == null || plugin.getPortalManager().hasPortal(anchor)) continue;
-
-            SellPortal portal = plugin.getDatabaseManager().loadPortalSync(anchor);
-            if (portal != null)
-                plugin.getPortalManager().registerPortal(anchor, portal);
-        }
-    }
-
-    @EventHandler
-    public void onChunkUnload(ChunkUnloadEvent event) {
-        plugin.getPortalManager().saveAndUnload(event.getChunk());
-    }
-
     private Location getAnchorFromBlock(Block block) {
         if (block.getType() != Material.END_PORTAL_FRAME)
             return null;
-
-        System.out.println("passed 1");
-
-        if (!(block.getState() instanceof TileState tile))
-            return null;
-
-        System.out.println("getting anchor");
-
-        PersistentDataContainer pdc = tile.getPersistentDataContainer();
-        String key = pdc.get(plugin.getPortalManager().getPortalAnchorKey(), PersistentDataType.STRING);
-        if (key == null || key.isEmpty()) return null;
-
-        return locationFromKey(key);
+        return plugin.getPortalManager().getAnchorFromFrame(locationKey(block.getLocation()));
     }
 
     private void removePortalStructure(Location anchor, int portalSize) {
@@ -274,14 +223,13 @@ public class PortalListener implements Listener {
         }
     }
 
-    private Location locationFromKey(String key) {
-        String[] parts = key.split(":");
-        if (parts.length < 4) return null;
-        return new Location(
-                plugin.getServer().getWorld(parts[0]),
-                Integer.parseInt(parts[1]),
-                Integer.parseInt(parts[2]),
-                Integer.parseInt(parts[3]));
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent event) {
+    }
+
+    @EventHandler
+    public void onChunkUnload(ChunkUnloadEvent event) {
+        plugin.getPortalManager().saveAndUnload(event.getChunk());
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
@@ -290,12 +238,8 @@ public class PortalListener implements Listener {
         if (event.getClickedBlock() == null) return;
         if (event.getClickedBlock().getType() != Material.END_PORTAL_FRAME) return;
 
-        System.out.println("interact");
-
         Location anchor = getAnchorFromBlock(event.getClickedBlock());
         if (anchor == null) return;
-
-        System.out.println("no anchor");
 
         event.setCancelled(true);
 
@@ -306,7 +250,6 @@ public class PortalListener implements Listener {
                 plugin.getPortalManager().registerPortal(anchor, portal);
         }
 
-        System.out.println(portal);
         if (portal == null) return;
 
         if (!plugin.getPortalManager().isGloballyEnabled()) {
@@ -331,11 +274,15 @@ public class PortalListener implements Listener {
         Location to = event.getTo();
         if (to == null) return;
 
+        System.out.println("portal");
+
         if (!plugin.getPortalManager().isGloballyEnabled()) return;
 
         // Find which portal this is
         SellPortal portal = findPortalNear(to);
         if (portal == null) return;
+
+        System.out.println("portal found");
 
         ItemStack itemStack = item.getItemStack();
         if (itemStack.getType().isAir()) return;
@@ -343,7 +290,7 @@ public class PortalListener implements Listener {
         if (!portal.shouldCollect(itemStack)) return;
 
         String materialName = itemStack.getType().name();
-        double price = 0;
+        double price;
 
         try {
             Prices prices = Prices.valueOf(materialName);
@@ -354,13 +301,29 @@ public class PortalListener implements Listener {
 
         if (price <= 0) return;
 
-        if (plugin.getExcellentEconomyHook() != null && plugin.getExcellentEconomyHook().isEnabled()) {
-            Player owner = plugin.getServer().getPlayer(portal.getOwnerUUID());
-            if (owner != null && owner.isOnline())
-                plugin.getExcellentEconomyHook().addMoney(owner, price);
-        }
+//        if (plugin.getExcellentEconomyHook() != null && plugin.getExcellentEconomyHook().isEnabled()) {
+//            Player owner = plugin.getServer().getPlayer(portal.getOwnerUUID());
+//            if (owner != null && owner.isOnline())
+//                plugin.getExcellentEconomyHook().addMoney(owner, price);
+//        }
 
-        // TODO use superiorskyblock island balance
+        if (plugin.getSuperiorSkyblock2Hook().isEnabled()) {
+            Island island = SuperiorSkyblockAPI.getIslandAt(portal.getLocation());
+
+            if (island == null) {
+                System.out.println("island not found");
+                return;
+            }
+
+            IslandBank islandBank = island.getIslandBank();
+
+            if (islandBank.canDepositMoney(BigDecimal.valueOf(price))) {
+                System.out.println("cant deposit");
+                return;
+            }
+
+            islandBank.depositAdminMoney(Bukkit.getConsoleSender(), BigDecimal.valueOf(price));
+        }
 
         item.remove();
         event.setCancelled(true);
@@ -369,14 +332,20 @@ public class PortalListener implements Listener {
     private SellPortal findPortalNear(Location location) {
         for (SellPortal portal : plugin.getPortalManager().getPortals()) {
             Location pl = portal.getLocation();
+
             if (pl.getWorld().equals(location.getWorld())) {
                 int dx = Math.abs(pl.getBlockX() - location.getBlockX());
                 int dz = Math.abs(pl.getBlockZ() - location.getBlockZ());
                 int frameSide = portal.getSize() + 2;
+
                 if (dx <= frameSide && dz <= frameSide)
                     return portal;
             }
         }
+
+        // TODO instead of getting all portals, just check for nearby blocks on the location
+
+
         return null;
     }
 
