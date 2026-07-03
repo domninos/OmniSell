@@ -1,0 +1,7 @@
+portals:
+  world,100,64,-250: "f8451d93-5c2b-45bc-822e-bf7d566371c6"
+  world,105,64,-250: "f8451d93-5c2b-45bc-822e-bf7d566371c6"
+  world_nether,-40,32,12: "069a79f4-44e9-4726-a5be-fca90e38aaf5"
+
+
+size: 3 # starter
