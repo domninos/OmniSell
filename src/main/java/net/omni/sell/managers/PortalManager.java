@@ -13,21 +13,16 @@ public class PortalManager {
 
     private final OmniSell plugin;
     private final NamespacedKey sellPortalKey;
-    private final NamespacedKey portalAnchorKey;
     private final Map<Location, SellPortal> portalCache = new LinkedHashMap<>();
+    private final Map<String, Location> frameToAnchor = new java.util.concurrent.ConcurrentHashMap<>();
 
     public PortalManager(OmniSell plugin) {
         this.plugin = plugin;
         this.sellPortalKey = new NamespacedKey(plugin, "sell_portal");
-        this.portalAnchorKey = new NamespacedKey(plugin, "portal_anchor");
     }
 
     public NamespacedKey getSellPortalKey() {
         return sellPortalKey;
-    }
-
-    public NamespacedKey getPortalAnchorKey() {
-        return portalAnchorKey;
     }
 
     public boolean isGloballyEnabled() {
@@ -41,10 +36,16 @@ public class PortalManager {
 
     public void registerPortal(Location location, SellPortal portal) {
         portalCache.put(location, portal);
+        for (String key : portal.getFrameKeys())
+            frameToAnchor.put(key, location);
     }
 
     public void unregisterPortal(Location location) {
-        portalCache.remove(location);
+        SellPortal portal = portalCache.remove(location);
+        if (portal != null) {
+            for (String key : portal.getFrameKeys())
+                frameToAnchor.remove(key);
+        }
     }
 
     public SellPortal getPortal(Location location) {
@@ -53,6 +54,10 @@ public class PortalManager {
 
     public boolean hasPortal(Location location) {
         return portalCache.containsKey(location);
+    }
+
+    public Location getAnchorFromFrame(String blockKey) {
+        return frameToAnchor.get(blockKey);
     }
 
     public List<SellPortal> getPortals() {
@@ -83,6 +88,8 @@ public class PortalManager {
                 SellPortal portal = entry.getValue();
                 if (portal.isDirty())
                     portal.save();
+                for (String key : portal.getFrameKeys())
+                    frameToAnchor.remove(key);
                 it.remove();
             }
         }
@@ -90,5 +97,6 @@ public class PortalManager {
 
     public void flush() {
         portalCache.clear();
+        frameToAnchor.clear();
     }
 }
