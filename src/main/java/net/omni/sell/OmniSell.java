@@ -1,15 +1,22 @@
 package net.omni.sell;
 
+import net.omni.sell.chat.ChatRenderer;
+import net.omni.sell.chat.PaperChatRenderer;
+import net.omni.sell.chat.SpigotChatRenderer;
 import net.omni.sell.commands.SellCommand;
+import net.omni.sell.config.ConfigUtil;
+import net.omni.sell.config.SellConfig;
 import net.omni.sell.handlers.SellItemHandler;
+import net.omni.sell.handlers.SellPortal;
 import net.omni.sell.hooks.ExcellentEconomyHook;
+import net.omni.sell.hooks.SuperiorSkyblock2Hook;
 import net.omni.sell.listeners.GUIListener;
 import net.omni.sell.listeners.PortalListener;
 import net.omni.sell.managers.DatabaseManager;
 import net.omni.sell.managers.MessagesManager;
 import net.omni.sell.managers.PortalManager;
 import net.omni.sell.managers.PricesManager;
-import net.omni.sell.util.*;
+import net.omni.sell.messages.MessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -50,6 +57,7 @@ public final class OmniSell extends JavaPlugin {
     private DatabaseManager databaseManager;
 
     private ExcellentEconomyHook excellentEconomyHook;
+    private SuperiorSkyblock2Hook superiorSkyblock2Hook;
 
     private MessagesManager messagesManager;
     private SellConfig messagesConfig;
@@ -58,8 +66,6 @@ public final class OmniSell extends JavaPlugin {
     private SellConfig pricesConfig;
 
     private PortalManager portalManager;
-
-    private SellCommand sellCommand;
 
     private SellItemHandler sellItemHandler;
 
@@ -108,7 +114,15 @@ public final class OmniSell extends JavaPlugin {
         registerHooks();
         registerCommands();
 
-        registerListeners();
+        sendConsole("<yellow>Registering portals..</yellow>");
+        databaseManager.loadAllPortalsAsync().thenAccept(portals ->
+                Bukkit.getScheduler().runTask(this, () -> {
+                    for (SellPortal portal : portals)
+                        portalManager.registerPortal(portal.getLocation(), portal);
+
+                    registerListeners();
+                    sendConsole("<green>Successfully registered portals.</green>");
+                }));
 
         sendConsole("<green>Successfully started " + getDescription().getName() + "-v" + getDescription().getVersion() + " </green>");
     }
@@ -133,12 +147,17 @@ public final class OmniSell extends JavaPlugin {
             excellentEconomyHook.init();
         }
 
+        if (Bukkit.getPluginManager().isPluginEnabled("SuperiorSkyblock2")) {
+            this.superiorSkyblock2Hook = new SuperiorSkyblock2Hook(this);
+
+            superiorSkyblock2Hook.init();
+        }
+
         // TODO
     }
 
     private void registerCommands() {
-        this.sellCommand = new SellCommand(this);
-        sellCommand.register();
+        new SellCommand(this).register();
     }
 
     private void registerListeners() {
@@ -184,6 +203,10 @@ public final class OmniSell extends JavaPlugin {
 
     public PortalManager getPortalManager() {
         return portalManager;
+    }
+
+    public SuperiorSkyblock2Hook getSuperiorSkyblock2Hook() {
+        return superiorSkyblock2Hook;
     }
 
     public ChatRenderer getChatRenderer() {
