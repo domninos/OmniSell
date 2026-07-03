@@ -57,6 +57,113 @@ public class ConfigUtil {
         return plugin.getConfig().getStringList("portal_item.lore");
     }
 
+    public int getPortalSize() {
+        return Math.max(1, plugin.getConfig().getInt("portal_size", 3));
+    }
+
+    public int getGuiMainSize() {
+        return plugin.getConfig().getInt("gui.main.size", 27);
+    }
+
+    public String getGuiMainTitle() {
+        return plugin.getConfig().getString("gui.main.title",
+                "<gradient:#00AAFF:#55FFFF>Sell Portal</gradient>");
+    }
+
+    public int getWhitelistSlot() {
+        return plugin.getConfig().getInt("gui.main.whitelist_slot", 11);
+    }
+
+    public int getBlacklistSlot() {
+        return plugin.getConfig().getInt("gui.main.blacklist_slot", 15);
+    }
+
+    public int getBackSlot() {
+        return plugin.getConfig().getInt("gui.main.back_slot", 22);
+    }
+
+    public int getWhitelistSize() {
+        return plugin.getConfig().getInt("gui.whitelist.size", 36);
+    }
+
+    public String getWhitelistTitle() {
+        return plugin.getConfig().getString("gui.whitelist.title",
+                "<gradient:#00AAFF:#55FFFF>Whitelist</gradient>");
+    }
+
+    public int getBlacklistSize() {
+        return plugin.getConfig().getInt("gui.blacklist.size", 36);
+    }
+
+    public String getBlacklistTitle() {
+        return plugin.getConfig().getString("gui.blacklist.title",
+                "<gradient:#00AAFF:#55FFFF>Blacklist</gradient>");
+    }
+
+    public Material getFillerMat() {
+        String name = plugin.getConfig().getString("gui.filler.material", "BLACK_STAINED_GLASS_PANE");
+        try {
+            return Material.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Material.BLACK_STAINED_GLASS_PANE;
+        }
+    }
+
+    public String getFillerDisplayName() {
+        return plugin.getConfig().getString("gui.filler.display_name", " ");
+    }
+
+    public Material getBackButtonMat() {
+        String name = plugin.getConfig().getString("gui.back_button.material", "BARRIER");
+        try {
+            return Material.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Material.BARRIER;
+        }
+    }
+
+    public String getBackButtonDisplayName() {
+        return plugin.getConfig().getString("gui.back_button.display_name", "<red>Back</red>");
+    }
+
+    public List<String> getBackButtonLore() {
+        return plugin.getConfig().getStringList("gui.back_button.lore");
+    }
+
+    public Material getWhitelistMat() {
+        String name = plugin.getConfig().getString("gui.whitelist_button.material", "LIME_DYE");
+        try {
+            return Material.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Material.LIME_DYE;
+        }
+    }
+
+    public String getWhitelistDisplayName() {
+        return plugin.getConfig().getString("gui.whitelist_button.display_name", "<green>Whitelist</green>");
+    }
+
+    public List<String> getWhitelistLore() {
+        return plugin.getConfig().getStringList("gui.whitelist_button.lore");
+    }
+
+    public Material getBlacklistMat() {
+        String name = plugin.getConfig().getString("gui.blacklist_button.material", "RED_DYE");
+        try {
+            return Material.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Material.RED_DYE;
+        }
+    }
+
+    public String getBlacklistDisplayName() {
+        return plugin.getConfig().getString("gui.blacklist_button.display_name", "<red>Blacklist</red>");
+    }
+
+    public List<String> getBlacklistLore() {
+        return plugin.getConfig().getStringList("gui.blacklist_button.lore");
+    }
+
     private int getAndDefaultSlot(String path, int defaultVal, IntConsumer consumer) {
         int temp = plugin.getConfig().getInt(path);
 

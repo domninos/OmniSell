@@ -1,3 +1,9 @@
+portals:
+  enabled: true
+
+economy:
+  currency: coins
+
 portal_item:
   material: END_PORTAL_FRAME
   display_name: "<gradient:#00AAFF:#55FFFF>Sell Portal</gradient>"
@@ -5,9 +11,35 @@ portal_item:
     - "<gray>Place to create a sell portal for your island</gray>"
     - "<gray>Only one portal per island!</gray>"
 
-portal_size: 3 # starter
+portal_size: 3
+
+gui:
+  main:
+    size: 27
+    title: "<gradient:#00AAFF:#55FFFF>Sell Portal</gradient>"
+    whitelist_slot: 11
+    blacklist_slot: 15
+    back_slot: 22
+  whitelist:
+    size: 36
+    title: "<gradient:#00AAFF:#55FFFF>Whitelist</gradient>"
+  blacklist:
+    size: 36
+    title: "<gradient:#00AAFF:#55FFFF>Blacklist</gradient>"
+  filler:
+    material: BLACK_STAINED_GLASS_PANE
+    display_name: " "
+  back_button:
+    material: BARRIER
+    display_name: "<red>Back</red>"
+  whitelist_button:
+    material: LIME_DYE
+    display_name: "<green>Whitelist</green>"
+  blacklist_button:
+    material: RED_DYE
+    display_name: "<red>Blacklist</red>"
 
 tier:
   1:
-    currency: levelxp # ExcellentEconomy/CoinsEngine currency, could be money from Vault
+    currency: levelxp
     amount: 100
