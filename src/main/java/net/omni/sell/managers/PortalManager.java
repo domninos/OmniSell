@@ -2,6 +2,7 @@ package net.omni.sell.managers;
 
 import net.omni.sell.OmniSell;
 import net.omni.sell.util.PortalData;
+import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -12,10 +13,12 @@ public class PortalManager {
 
     private final OmniSell plugin;
     private final Map<String, PortalData> portalCache = new LinkedHashMap<>();
+    private final NamespacedKey sellPortalKey;
     private boolean globallyEnabled = true;
 
     public PortalManager(OmniSell plugin) {
         this.plugin = plugin;
+        this.sellPortalKey = new NamespacedKey(plugin, "sell_portal");
     }
 
     public void loadPortals() {
@@ -42,6 +45,10 @@ public class PortalManager {
             } catch (IllegalArgumentException ignored) {
             }
         }
+    }
+
+    public NamespacedKey getSellPortalKey() {
+        return sellPortalKey;
     }
 
     public boolean isGloballyEnabled() {

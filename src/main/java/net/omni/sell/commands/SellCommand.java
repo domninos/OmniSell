@@ -49,6 +49,7 @@ public class SellCommand implements CommandExecutor {
                 plugin.getMessagesManager().loadMessages();
                 plugin.getPricesManager().loadPrices();
                 plugin.getPortalManager().loadPortals();
+                plugin.getSellItemHandler().load();
 
                 plugin.sendMessage(sender, Messages.RELOADED.toString());
             } else if (args[0].equalsIgnoreCase("about"))
@@ -112,8 +113,12 @@ public class SellCommand implements CommandExecutor {
             }
         }
 
-        // TODO: give portal item once item handler exists
-        plugin.sendMessage(sender, Messages.GIVE_SUCCESS.replace("player", target.getName()));
+        boolean success = plugin.getSellItemHandler().give(target, amount);
+
+        if (success)
+            plugin.sendMessage(sender, Messages.GIVE_SUCCESS.replace("player", target.getName()));
+        else
+            plugin.sendMessage(sender, Messages.GIVE_ERROR.replace("player", target.getName()));
         return true;
     }
 

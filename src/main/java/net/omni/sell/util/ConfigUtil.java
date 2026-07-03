@@ -1,7 +1,9 @@
 package net.omni.sell.util;
 
 import net.omni.sell.OmniSell;
+import org.bukkit.Material;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntConsumer;
 
@@ -35,6 +37,24 @@ public class ConfigUtil {
         }
 
         plugin.sendConsole("<green>Successfully loaded config.yml</green>");
+    }
+
+    public Material getPortalItemMaterial() {
+        String name = plugin.getConfig().getString("portal_item.material", "END_PORTAL_FRAME");
+        try {
+            return Material.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Material.END_PORTAL_FRAME;
+        }
+    }
+
+    public String getPortalItemDisplayName() {
+        return plugin.getConfig().getString("portal_item.display_name",
+                "<gradient:#00AAFF:#55FFFF>Sell Portal</gradient>");
+    }
+
+    public List<String> getPortalItemLore() {
+        return plugin.getConfig().getStringList("portal_item.lore");
     }
 
     private int getAndDefaultSlot(String path, int defaultVal, IntConsumer consumer) {

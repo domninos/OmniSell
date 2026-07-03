@@ -1,4 +1,12 @@
-size: 3 # starter
+portal_item:
+  material: END_PORTAL_FRAME
+  display_name: "<gradient:#00AAFF:#55FFFF>Sell Portal</gradient>"
+  lore:
+    - "<gray>Place to create a sell portal for your island</gray>"
+    - "<gray>Only one portal per island!</gray>"
+
+portal_size: 3 # starter
+
 tier:
   1:
     currency: levelxp # ExcellentEconomy/CoinsEngine currency, could be money from Vault

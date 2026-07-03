@@ -1,6 +1,7 @@
 package net.omni.sell;
 
 import net.omni.sell.commands.SellCommand;
+import net.omni.sell.handlers.SellItemHandler;
 import net.omni.sell.hooks.ExcellentEconomyHook;
 import net.omni.sell.managers.DatabaseManager;
 import net.omni.sell.managers.MessagesManager;
@@ -53,6 +54,8 @@ public final class OmniSell extends JavaPlugin {
 
     private SellCommand sellCommand;
 
+    private SellItemHandler sellItemHandler;
+
     private ConfigUtil configUtil;
 
     @Override
@@ -62,6 +65,7 @@ public final class OmniSell extends JavaPlugin {
         messagesManager.flush();
         pricesManager.flush();
         portalManager.flush();
+        sellItemHandler.flush();
 
         databaseManager.closePool();
 
@@ -88,6 +92,9 @@ public final class OmniSell extends JavaPlugin {
 
         this.configUtil = new ConfigUtil(this);
         configUtil.load();
+
+        this.sellItemHandler = new SellItemHandler(this);
+        sellItemHandler.load();
 
         registerHooks();
         registerCommands();
@@ -170,5 +177,13 @@ public final class OmniSell extends JavaPlugin {
 
     public SellConfig getPortalsConfig() {
         return portalsConfig;
+    }
+
+    public ChatRenderer getChatRenderer() {
+        return chatRenderer;
+    }
+
+    public SellItemHandler getSellItemHandler() {
+        return sellItemHandler;
     }
 }
