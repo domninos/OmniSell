@@ -27,13 +27,13 @@ public class ExcellentEconomyHook {
         if (provider != null) {
             this.api = provider.getProvider();
 
-            plugin.sendConsole("<green>Successfully hooked into ExcellentEconomyAPI");
 
             this.enabled = true;
 
             OperationContext.custom("OmniSell")
                     .silentFor(NotificationTarget.USER, NotificationTarget.EXECUTOR, NotificationTarget.CONSOLE_LOGGER);
 
+            plugin.sendConsole("<green>Successfully hooked into ExcellentEconomyAPI</green>");
 //            myContext.
         }
     }

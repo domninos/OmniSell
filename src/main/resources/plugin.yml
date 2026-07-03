@@ -6,7 +6,9 @@ main: net.omni.sell.OmniSell
 api-version: '1.13'
 load: POSTWORLD
 
-softdepend: [ ExcellentEconomy, SuperiorSkyblock2 ]
+softdepend: [ ExcellentEconomy ]
+
+depend: [ SuperiorSkyblock2 ]
 
 authors: [ domninos ]
 
