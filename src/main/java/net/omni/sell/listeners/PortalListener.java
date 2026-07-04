@@ -306,7 +306,11 @@ public class PortalListener implements Listener {
             if (!islandBank.canDepositMoney(bigDecimal))
                 return;
 
-            islandBank.depositAdminMoney(Bukkit.getConsoleSender(), bigDecimal);
+//            islandBank.depositAdminMoney(Bukkit.getConsoleSender(), bigDecimal); // this makes a ton of transaction logs
+
+            BigDecimal currentBal = islandBank.getBalance();
+
+            islandBank.setBalance(currentBal.add(bigDecimal));
         }
 
         item.remove();

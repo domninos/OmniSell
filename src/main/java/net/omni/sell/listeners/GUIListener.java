@@ -13,10 +13,9 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
-
-import java.util.Map;
 
 public class GUIListener implements Listener {
 
@@ -29,11 +28,10 @@ public class GUIListener implements Listener {
     private record PortalContext(SellPortal portal, InventoryType type) {}
 
     private PortalContext detect(Inventory top, InventoryView view) {
-        // Primary: pattern match on SellPortalHolder
-        if (top.getHolder() instanceof SellPortalHolder(SellPortal p, InventoryType t))
-            return new PortalContext(p, t);
+        InventoryHolder holder = top.getHolder();
+        if (holder instanceof SellPortalHolder sph)
+            return new PortalContext(sph.portal(), sph.type());
 
-        // Fallback 1: reference equality against known portal inventories
         for (SellPortal p : plugin.getPortalManager().getPortals()) {
             if (top == p.getMainInventory())
                 return new PortalContext(p, InventoryType.MAIN);
@@ -43,7 +41,6 @@ public class GUIListener implements Listener {
                 return new PortalContext(p, InventoryType.BLACKLIST);
         }
 
-        // Fallback 2: detect by title (only available with InventoryView)
         if (view != null) {
             String title = view.getTitle();
             if (title == null) return null;
@@ -52,15 +49,13 @@ public class GUIListener implements Listener {
             String whitelistTitle = plugin.getConfigUtil().getWhitelistTitle();
             String blacklistTitle = plugin.getConfigUtil().getBlacklistTitle();
 
-            if (title.equals(whitelistTitle)) {
+            if (title.equals(whitelistTitle) || title.equals(blacklistTitle) || title.equals(mainTitle)) {
                 SellPortal p = findPortalByInventoryMatch(top);
-                if (p != null) return new PortalContext(p, InventoryType.WHITELIST);
-            } else if (title.equals(blacklistTitle)) {
-                SellPortal p = findPortalByInventoryMatch(top);
-                if (p != null) return new PortalContext(p, InventoryType.BLACKLIST);
-            } else if (title.equals(mainTitle)) {
-                SellPortal p = findPortalByInventoryMatch(top);
-                if (p != null) return new PortalContext(p, InventoryType.MAIN);
+                if (p != null) {
+                    InventoryType t = title.equals(whitelistTitle) ? InventoryType.WHITELIST
+                            : title.equals(blacklistTitle) ? InventoryType.BLACKLIST : InventoryType.MAIN;
+                    return new PortalContext(p, t);
+                }
             }
         }
 
@@ -105,7 +100,6 @@ public class GUIListener implements Listener {
     private void handleMainClick(Player player, SellPortal portal, int slot, boolean isTop, InventoryClickEvent event) {
         if (!isTop) {
             event.setCancelled(false);
-            portal.markDirty();
             return;
         }
 
@@ -126,9 +120,6 @@ public class GUIListener implements Listener {
             }
             return;
         }
-
-        event.setCancelled(false);
-        portal.markDirty();
     }
 
     private void handleFilterClick(SellPortal portal, InventoryType type,
@@ -149,33 +140,34 @@ public class GUIListener implements Listener {
 
         if (!isTop) {
             if (event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
-                ItemStack cursor = event.getCursor();
-                if (cursor.getType() != Material.AIR) {
-                    Map<Integer, ItemStack> left = event.getWhoClicked().getInventory().addItem(cursor);
-                    event.setCursor(left.isEmpty() ? null : left.get(0));
+                ItemStack moved = event.getCurrentItem();
+                if (moved == null || moved.getType().isAir())
+                    return;
+
+                if (portal.isInOtherFilter(type, moved)) {
+                    event.setCancelled(true);
                     return;
                 }
 
-                ItemStack moved = event.getCurrentItem();
-                if (moved != null && moved.getType() != Material.AIR) {
-                    if (portal.isInOtherFilter(type, moved)) {
-                        event.setCancelled(true);
-                        return;
-                    }
+                Inventory top = view.getTopInventory();
+                int emptySlot = findEmptySlot(top, size - 9);
+                if (emptySlot == -1)
+                    return;
 
-                    Inventory top = view.getTopInventory();
-                    int emptySlot = findEmptySlot(top, size - 9);
-                    if (emptySlot != -1) {
-                        ItemStack clone = moved.clone();
-                        clone.setAmount(1);
-                        top.setItem(emptySlot, clone);
-                    }
-                }
+                ItemStack one = moved.clone();
+                one.setAmount(1);
+                top.setItem(emptySlot, one);
+
+                ItemStack remainder = moved.clone();
+                remainder.setAmount(moved.getAmount() - 1);
+                if (remainder.getAmount() > 0)
+                    event.getView().getBottomInventory().setItem(event.getSlot(), remainder);
+                else
+                    event.getView().getBottomInventory().setItem(event.getSlot(), null);
                 return;
             }
 
-            ItemStack moved = event.getCurrentItem();
-            if (moved != null && moved.getType() != Material.AIR && portal.isInOtherFilter(type, moved)) {
+            if (portal.isInOtherFilter(type, event.getCurrentItem())) {
                 event.setCancelled(true);
                 return;
             }
@@ -185,25 +177,26 @@ public class GUIListener implements Listener {
         }
 
         ItemStack cursor = event.getCursor();
-        if (cursor.getType() != Material.AIR) {
-            if (slot < 0) {
-                event.setCancelled(false);
-                return;
-            }
-
+        if (cursor != null && !cursor.getType().isAir()) {
             if (portal.isInOtherFilter(type, cursor)) {
                 event.setCancelled(true);
                 return;
             }
 
-            ItemStack clone = cursor.clone();
-            clone.setAmount(1);
-            event.setCurrentItem(clone);
+            ItemStack one = cursor.clone();
+            one.setAmount(1);
+            event.setCurrentItem(one);
+
+            ItemStack newCursor = cursor.clone();
+            newCursor.setAmount(cursor.getAmount() - 1);
+            event.setCursor(newCursor.getAmount() > 0 ? newCursor : null);
+            portal.markDirty();
             return;
         }
 
         ItemStack current = event.getCurrentItem();
-        if (current != null && current.getType() != Material.AIR) {
+        if (current != null && !current.getType().isAir()) {
+            event.setCursor(current);
             event.setCurrentItem(null);
             portal.markDirty();
         }
@@ -212,7 +205,7 @@ public class GUIListener implements Listener {
     private int findEmptySlot(Inventory inv, int limit) {
         for (int i = 0; i < limit; i++) {
             ItemStack it = inv.getItem(i);
-            if (it == null || it.getType() == Material.AIR)
+            if (it == null || it.getType().isAir())
                 return i;
         }
         return -1;
@@ -238,7 +231,7 @@ public class GUIListener implements Listener {
             if (touchesTop)
                 event.setCancelled(true);
         } else {
-            ctx.portal().markDirty();
+            event.setCancelled(true);
         }
     }
 

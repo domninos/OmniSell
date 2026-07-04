@@ -41,15 +41,16 @@ public final class OmniSell extends JavaPlugin {
             .
             Only 1 portal should be allowed to be placed per island
             .
+            base: 3x3 and but have it configurable so if we wanna make it bigger we can
+            .
             The portal upgrades:
-             base: 3x3 and but have it configurable so if we wanna make it bigger we can
              sell boosters
             .
             softdepend SuperiorSkyblock2
                 if hooked, deposit to island balance
                 else, deposit to owner balance
             .
-                make /sp list only show portal owned
+            make /sp list only show portal owned
      */
 
     private ChatRenderer chatRenderer;
