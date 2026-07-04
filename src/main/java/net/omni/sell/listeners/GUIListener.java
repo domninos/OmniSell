@@ -26,6 +26,59 @@ public class GUIListener implements Listener {
         this.plugin = plugin;
     }
 
+    private record PortalContext(SellPortal portal, InventoryType type) {}
+
+    private PortalContext detect(Inventory top, InventoryView view) {
+        // Primary: pattern match on SellPortalHolder
+        if (top.getHolder() instanceof SellPortalHolder(SellPortal p, InventoryType t))
+            return new PortalContext(p, t);
+
+        // Fallback 1: reference equality against known portal inventories
+        for (SellPortal p : plugin.getPortalManager().getPortals()) {
+            if (top == p.getMainInventory())
+                return new PortalContext(p, InventoryType.MAIN);
+            if (top == p.getWhitelistInventory())
+                return new PortalContext(p, InventoryType.WHITELIST);
+            if (top == p.getBlacklistInventory())
+                return new PortalContext(p, InventoryType.BLACKLIST);
+        }
+
+        // Fallback 2: detect by title (only available with InventoryView)
+        if (view != null) {
+            String title = view.getTitle();
+            if (title == null) return null;
+
+            String mainTitle = plugin.getConfigUtil().getGuiMainTitle();
+            String whitelistTitle = plugin.getConfigUtil().getWhitelistTitle();
+            String blacklistTitle = plugin.getConfigUtil().getBlacklistTitle();
+
+            if (title.equals(whitelistTitle)) {
+                SellPortal p = findPortalByInventoryMatch(top);
+                if (p != null) return new PortalContext(p, InventoryType.WHITELIST);
+            } else if (title.equals(blacklistTitle)) {
+                SellPortal p = findPortalByInventoryMatch(top);
+                if (p != null) return new PortalContext(p, InventoryType.BLACKLIST);
+            } else if (title.equals(mainTitle)) {
+                SellPortal p = findPortalByInventoryMatch(top);
+                if (p != null) return new PortalContext(p, InventoryType.MAIN);
+            }
+        }
+
+        return null;
+    }
+
+    private PortalContext detect(Inventory top) {
+        return detect(top, null);
+    }
+
+    private SellPortal findPortalByInventoryMatch(Inventory top) {
+        for (SellPortal p : plugin.getPortalManager().getPortals()) {
+            if (top == p.getMainInventory() || top == p.getWhitelistInventory() || top == p.getBlacklistInventory())
+                return p;
+        }
+        return null;
+    }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player))
@@ -34,18 +87,18 @@ public class GUIListener implements Listener {
         InventoryView view = event.getView();
         Inventory top = view.getTopInventory();
 
-        if (!(top.getHolder() instanceof SellPortalHolder(SellPortal portal, InventoryType type)))
-            return;
+        PortalContext ctx = detect(top, view);
+        if (ctx == null) return;
 
         event.setCancelled(true);
 
         int slot = event.getRawSlot();
         boolean isTop = slot < top.getSize();
 
-        switch (type) {
-            case MAIN -> handleMainClick(player, portal, slot, isTop, event);
-            case WHITELIST -> handleFilterClick(portal, InventoryType.WHITELIST, slot, isTop, event, view);
-            case BLACKLIST -> handleFilterClick(portal, InventoryType.BLACKLIST, slot, isTop, event, view);
+        switch (ctx.type()) {
+            case MAIN -> handleMainClick(player, ctx.portal(), slot, isTop, event);
+            case WHITELIST -> handleFilterClick(ctx.portal(), InventoryType.WHITELIST, slot, isTop, event, view);
+            case BLACKLIST -> handleFilterClick(ctx.portal(), InventoryType.BLACKLIST, slot, isTop, event, view);
         }
     }
 
@@ -68,6 +121,8 @@ public class GUIListener implements Listener {
             } else if (portal.isBlacklistSlot(slot)) {
                 player.closeInventory();
                 player.openInventory(portal.buildBlacklistGUI());
+            } else if (portal.isPickupSlot(slot)) {
+                plugin.getPortalManager().handlePickupPortal(player, portal);
             }
             return;
         }
@@ -169,11 +224,11 @@ public class GUIListener implements Listener {
             return;
 
         Inventory top = event.getView().getTopInventory();
-        if (!(top.getHolder() instanceof SellPortalHolder(SellPortal portal, InventoryType type)))
-            return;
+        PortalContext ctx = detect(top);
+        if (ctx == null) return;
 
-        if (type != InventoryType.MAIN) {
-            int size = type == InventoryType.WHITELIST
+        if (ctx.type() != InventoryType.MAIN) {
+            int size = ctx.type() == InventoryType.WHITELIST
                     ? plugin.getConfigUtil().getWhitelistSize()
                     : plugin.getConfigUtil().getBlacklistSize();
 
@@ -183,7 +238,7 @@ public class GUIListener implements Listener {
             if (touchesTop)
                 event.setCancelled(true);
         } else {
-            portal.markDirty();
+            ctx.portal().markDirty();
         }
     }
 
@@ -192,19 +247,17 @@ public class GUIListener implements Listener {
         if (!(event.getPlayer() instanceof Player))
             return;
 
-        InventoryView view = event.getView();
-        Inventory top = view.getTopInventory();
+        Inventory top = event.getView().getTopInventory();
+        PortalContext ctx = detect(top);
+        if (ctx == null) return;
 
-        if (!(top.getHolder() instanceof SellPortalHolder(SellPortal portal, InventoryType type)))
-            return;
-
-        switch (type) {
-            case WHITELIST -> portal.applyWhitelistChanges(top);
-            case BLACKLIST -> portal.applyBlacklistChanges(top);
+        switch (ctx.type()) {
+            case WHITELIST -> ctx.portal().applyWhitelistChanges(top);
+            case BLACKLIST -> ctx.portal().applyBlacklistChanges(top);
             case MAIN -> {}
         }
 
-        portal.save();
+        ctx.portal().save();
     }
 
     public void register() {

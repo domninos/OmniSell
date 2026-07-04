@@ -20,6 +20,12 @@ gui:
     whitelist_slot: 11
     blacklist_slot: 15
     back_slot: 22
+    pickup_slot: 13
+  pickup_button:
+    material: END_PORTAL_FRAME
+    display_name: "<yellow>Pick Up Portal</yellow>"
+    lore:
+      - "<gray>Pick up this portal and move it</gray>"
   whitelist:
     size: 36
     title: "<gradient:#00AAFF:#55FFFF>Whitelist</gradient>"

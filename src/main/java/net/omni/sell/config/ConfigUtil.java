@@ -82,6 +82,27 @@ public class ConfigUtil {
         return plugin.getConfig().getInt("gui.main.back_slot", 22);
     }
 
+    public int getPickupSlot() {
+        return plugin.getConfig().getInt("gui.main.pickup_slot", 13);
+    }
+
+    public Material getPickupMat() {
+        String name = plugin.getConfig().getString("gui.pickup_button.material", "END_PORTAL_FRAME");
+        try {
+            return Material.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Material.END_PORTAL_FRAME;
+        }
+    }
+
+    public String getPickupDisplayName() {
+        return plugin.getConfig().getString("gui.pickup_button.display_name", "<yellow>Pick Up Portal</yellow>");
+    }
+
+    public List<String> getPickupLore() {
+        return plugin.getConfig().getStringList("gui.pickup_button.lore");
+    }
+
     public int getWhitelistSize() {
         return plugin.getConfig().getInt("gui.whitelist.size", 36);
     }

@@ -26,7 +26,13 @@ public class SellPortal {
     private final Inventory blacklistInventory;
 
     private List<String> frameKeys = List.of();
+    private String islandUUID;
     private boolean dirty = false;
+
+    public SellPortal(Location location, UUID ownerUUID, int size, String islandUUID, OmniSell plugin) {
+        this(location, ownerUUID, size, plugin);
+        this.islandUUID = islandUUID;
+    }
 
     public SellPortal(Location location, UUID ownerUUID, int size, OmniSell plugin) {
         this.plugin = plugin;
@@ -70,6 +76,11 @@ public class SellPortal {
                 createItem(plugin.getConfigUtil().getBlacklistMat(),
                         plugin.getConfigUtil().getBlacklistDisplayName(),
                         plugin.getConfigUtil().getBlacklistLore()));
+
+        mainInventory.setItem(plugin.getConfigUtil().getPickupSlot(),
+                createItem(plugin.getConfigUtil().getPickupMat(),
+                        plugin.getConfigUtil().getPickupDisplayName(),
+                        plugin.getConfigUtil().getPickupLore()));
 
         mainInventory.setItem(plugin.getConfigUtil().getBackSlot(),
                 createItem(plugin.getConfigUtil().getBackButtonMat(),
@@ -131,6 +142,14 @@ public class SellPortal {
 
     public Inventory getBlacklistInventory() {
         return blacklistInventory;
+    }
+
+    public String getIslandUUID() {
+        return islandUUID;
+    }
+
+    public void setIslandUUID(String islandUUID) {
+        this.islandUUID = islandUUID;
     }
 
     public List<String> getFrameKeys() {
@@ -209,18 +228,20 @@ public class SellPortal {
         Inventory gui = renderer.createInventory(
                 new SellPortalHolder(this, type), size, title);
 
-        int bottomStart = size - 9;
-        for (int i = size - 1; i >= bottomStart; i--)
-            gui.setItem(i, createItem(
-                    plugin.getConfigUtil().getFillerMat(),
-                    plugin.getConfigUtil().getFillerDisplayName()));
-
-        gui.setItem(plugin.getConfigUtil().getBackSlot(),
-                createItem(plugin.getConfigUtil().getBackButtonMat(),
-                        plugin.getConfigUtil().getBackButtonDisplayName(),
-                        plugin.getConfigUtil().getBackButtonLore()));
-
         int itemSlots = size - 9;
+        ItemStack filler = createItem(
+                plugin.getConfigUtil().getFillerMat(),
+                plugin.getConfigUtil().getFillerDisplayName());
+
+        for (int i = 0; i < size; i++)
+            gui.setItem(i, filler.clone());
+
+        if (plugin.getConfigUtil().getBackSlot() < size)
+            gui.setItem(plugin.getConfigUtil().getBackSlot(),
+                    createItem(plugin.getConfigUtil().getBackButtonMat(),
+                            plugin.getConfigUtil().getBackButtonDisplayName(),
+                            plugin.getConfigUtil().getBackButtonLore()));
+
         for (int i = 0; i < Math.min(itemSlots, filterSource.getSize() - 9); i++) {
             ItemStack it = filterSource.getItem(i);
             if (it != null && it.getType() != Material.AIR)
@@ -244,8 +265,16 @@ public class SellPortal {
 
     private void applyFilterChanges(Inventory view, Inventory target) {
         int limit = Math.min(view.getSize() - 9, target.getSize() - 9);
-        for (int i = 0; i < limit; i++)
-            target.setItem(i, view.getItem(i));
+        Material fillerMat = plugin.getConfigUtil().getFillerMat();
+        int backSlot = plugin.getConfigUtil().getBackSlot();
+        for (int i = 0; i < limit; i++) {
+            if (i == backSlot) continue;
+            ItemStack item = view.getItem(i);
+            if (item != null && item.getType() != Material.AIR && item.getType() != fillerMat)
+                target.setItem(i, item);
+            else
+                target.setItem(i, null);
+        }
         for (int i = limit; i < target.getSize() - 9; i++)
             target.setItem(i, null);
         this.dirty = true;
@@ -272,14 +301,18 @@ public class SellPortal {
         return slot == plugin.getConfigUtil().getBackSlot();
     }
 
+    public boolean isPickupSlot(int slot) {
+        return slot == plugin.getConfigUtil().getPickupSlot();
+    }
+
     public void save() {
         if (!dirty) return;
 
         List<ItemStack> whitelistItems = extractItems(whitelistInventory, whitelistInventory.getSize() - 9);
         List<ItemStack> blacklistItems = extractItems(blacklistInventory, blacklistInventory.getSize() - 9);
 
-        plugin.getDatabaseManager().saveFullSync(
-                location, ownerUUID.toString(), size, frameKeys, whitelistItems, blacklistItems);
+        plugin.getDatabaseManager().saveFull(
+                location, ownerUUID.toString(), size, frameKeys, islandUUID, whitelistItems, blacklistItems);
         dirty = false;
     }
 

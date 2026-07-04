@@ -55,6 +55,7 @@ public class DatabaseManager {
                         owner_uuid TEXT,
                         size INTEGER DEFAULT 3,
                         frame_keys TEXT,
+                        island_uuid TEXT,
                         whitelist_base64 TEXT,
                         blacklist_base64 TEXT);
                     """);
@@ -120,7 +121,7 @@ public class DatabaseManager {
     }
 
     public void saveFull(Location location, String ownerUUID, int size,
-                         List<String> frameKeys,
+                         List<String> frameKeys, String islandUUID,
                          List<ItemStack> whitelist, List<ItemStack> blacklist) {
         String locationKey = getLocationKey(location);
         if (locationKey.isBlank()) return;
@@ -129,11 +130,11 @@ public class DatabaseManager {
         String base64Blacklist = ItemSerializationUtil.toBase64(blacklist);
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
-                executeSave(locationKey, ownerUUID, size, frameKeys, base64Whitelist, base64Blacklist));
+                executeSave(locationKey, ownerUUID, size, frameKeys, islandUUID, base64Whitelist, base64Blacklist));
     }
 
     public void saveFullSync(Location location, String ownerUUID, int size,
-                             List<String> frameKeys,
+                             List<String> frameKeys, String islandUUID,
                              List<ItemStack> whitelist, List<ItemStack> blacklist) {
         String locationKey = getLocationKey(location);
         if (locationKey.isBlank()) return;
@@ -141,16 +142,16 @@ public class DatabaseManager {
         String base64Whitelist = ItemSerializationUtil.toBase64(whitelist);
         String base64Blacklist = ItemSerializationUtil.toBase64(blacklist);
 
-        executeSave(locationKey, ownerUUID, size, frameKeys, base64Whitelist, base64Blacklist);
+        executeSave(locationKey, ownerUUID, size, frameKeys, islandUUID, base64Whitelist, base64Blacklist);
     }
 
     private void executeSave(String locationKey, String ownerUUID, int size,
-                             List<String> frameKeys,
+                             List<String> frameKeys, String islandUUID,
                              String base64Whitelist, String base64Blacklist) {
         String query = """
                 INSERT OR REPLACE INTO sell_portals
-                    (location_key, owner_uuid, size, frame_keys, whitelist_base64, blacklist_base64)
-                VALUES (?, ?, ?, ?, ?, ?);
+                    (location_key, owner_uuid, size, frame_keys, island_uuid, whitelist_base64, blacklist_base64)
+                VALUES (?, ?, ?, ?, ?, ?, ?);
                 """;
 
         try (Connection connection = getConnection();
@@ -159,8 +160,9 @@ public class DatabaseManager {
             stmt.setString(2, ownerUUID);
             stmt.setInt(3, size);
             stmt.setString(4, frameKeys.isEmpty() ? null : String.join(",", frameKeys));
-            stmt.setString(5, base64Whitelist);
-            stmt.setString(6, base64Blacklist);
+            stmt.setString(5, islandUUID);
+            stmt.setString(6, base64Whitelist);
+            stmt.setString(7, base64Blacklist);
             stmt.executeUpdate();
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Error while saving to database!", e);
@@ -171,7 +173,7 @@ public class DatabaseManager {
         String locationKey = getLocationKey(location);
         if (locationKey.isBlank()) return null;
 
-        String query = "SELECT owner_uuid, size, frame_keys, whitelist_base64, blacklist_base64 FROM sell_portals WHERE location_key = ?";
+        String query = "SELECT owner_uuid, size, frame_keys, island_uuid, whitelist_base64, blacklist_base64 FROM sell_portals WHERE location_key = ?";
 
         try (Connection connection = getConnection();
              PreparedStatement stmt = connection.prepareStatement(query)) {
@@ -186,6 +188,8 @@ public class DatabaseManager {
                     List<String> frameKeys = (frameKeysStr != null && !frameKeysStr.isEmpty())
                             ? List.of(frameKeysStr.split(",")) : List.of();
 
+                    String islandUUID = rs.getString("island_uuid");
+
                     String whitelistB64 = rs.getString("whitelist_base64");
                     String blacklistB64 = rs.getString("blacklist_base64");
 
@@ -194,7 +198,7 @@ public class DatabaseManager {
                     List<ItemStack> blacklist = (blacklistB64 != null && !blacklistB64.isEmpty())
                             ? ItemSerializationUtil.fromBase64(blacklistB64) : List.of();
 
-                    SellPortal portal = new SellPortal(location, UUID.fromString(ownerUUID), size, plugin);
+                    SellPortal portal = new SellPortal(location, UUID.fromString(ownerUUID), size, islandUUID, plugin);
                     portal.setFrameKeys(frameKeys);
                     portal.loadItems(whitelist, blacklist);
                     return portal;
@@ -225,12 +229,31 @@ public class DatabaseManager {
         return 0;
     }
 
+    public boolean hasPortalForIslandSync(String islandUUID) {
+        if (islandUUID == null || islandUUID.isEmpty()) return false;
+
+        String query = "SELECT 1 FROM sell_portals WHERE island_uuid = ? LIMIT 1";
+
+        try (Connection connection = getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, islandUUID);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Error while checking island portal in database!", e);
+        }
+
+        return false;
+    }
+
     public CompletableFuture<List<SellPortal>> loadAllPortalsAsync() {
         CompletableFuture<List<SellPortal>> future = new CompletableFuture<>();
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             List<SellPortal> portals = new ArrayList<>();
-            String query = "SELECT location_key, owner_uuid, size, frame_keys, whitelist_base64, blacklist_base64 FROM sell_portals";
+            String query = "SELECT location_key, owner_uuid, size, frame_keys, island_uuid, whitelist_base64, blacklist_base64 FROM sell_portals";
 
             try (Connection connection = getConnection();
                  PreparedStatement stmt = connection.prepareStatement(query);
@@ -248,6 +271,8 @@ public class DatabaseManager {
                     List<String> frameKeys = (frameKeysStr != null && !frameKeysStr.isEmpty())
                             ? List.of(frameKeysStr.split(",")) : List.of();
 
+                    String islandUUID = rs.getString("island_uuid");
+
                     String whitelistB64 = rs.getString("whitelist_base64");
                     String blacklistB64 = rs.getString("blacklist_base64");
 
@@ -256,7 +281,7 @@ public class DatabaseManager {
                     List<ItemStack> blacklist = (blacklistB64 != null && !blacklistB64.isEmpty())
                             ? ItemSerializationUtil.fromBase64(blacklistB64) : List.of();
 
-                    SellPortal portal = new SellPortal(location, UUID.fromString(ownerUUID), size, plugin);
+                    SellPortal portal = new SellPortal(location, UUID.fromString(ownerUUID), size, islandUUID, plugin);
                     portal.setFrameKeys(frameKeys);
                     portal.loadItems(whitelist, blacklist);
                     portals.add(portal);

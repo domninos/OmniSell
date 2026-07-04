@@ -2,9 +2,12 @@ package net.omni.sell.managers;
 
 import net.omni.sell.OmniSell;
 import net.omni.sell.handlers.SellPortal;
+import net.omni.sell.listeners.PortalListener;
+import net.omni.sell.messages.Messages;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -93,6 +96,27 @@ public class PortalManager {
                 it.remove();
             }
         }
+    }
+
+    public boolean hasPortalForIsland(String islandUUID) {
+        if (islandUUID == null || islandUUID.isEmpty()) return false;
+        return portalCache.values().stream()
+                .anyMatch(p -> islandUUID.equals(p.getIslandUUID()));
+    }
+
+    public void handlePickupPortal(Player player, SellPortal portal) {
+        if (player.getInventory().firstEmpty() == -1) {
+            plugin.sendMessage(player, Messages.PORTAL_NO_EMPTY_SPACE.toString());
+            return;
+        }
+
+        Location anchor = portal.getLocation();
+
+        PortalListener.removePortalStructure(anchor, portal.getSize());
+        unregisterPortal(anchor);
+        plugin.getDatabaseManager().deleteLocationSync(anchor);
+        player.getInventory().addItem(plugin.getSellItemHandler().getItemStack(1));
+        plugin.sendMessage(player, Messages.PORTAL_PICKED_UP.toString());
     }
 
     public void flush() {
