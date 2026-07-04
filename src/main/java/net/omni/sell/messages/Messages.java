@@ -33,7 +33,10 @@ public enum Messages {
     PORTAL_REMOVED("portal_removed", "<green>Portal removed.</green>"),
     PORTAL_NO_EMPTY_SPACE("portal_no_empty_space", "<red>You need an empty inventory slot to pick up the portal.</red>"),
     PORTAL_PICKED_UP("portal_picked_up", "<green>Portal picked up!</green>"),
-    PORTAL_ALREADY_EXISTS("portal_already_exists", "<red>This island already has a sell portal.</red>");
+    PORTAL_ALREADY_EXISTS("portal_already_exists", "<red>This island already has a sell portal.</red>"),
+    BOOSTER_ACTIVATED("booster_activated", "<green>Booster</green> <gold>%booster%</gold> <green>activated!</green> <gray>(%multiplier%x for %duration%)</gray>"),
+    BOOSTER_ON_COOLDOWN("booster_on_cooldown", "<red>That booster is on cooldown.</red> <gray>%remaining% remaining.</gray>"),
+    BOOSTER_ALREADY_ACTIVE("booster_already_active", "<red>That booster is already active on your island.</red>");
 
     private final String path;
     private final Object defaultVal;
