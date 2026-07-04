@@ -64,7 +64,25 @@ public class DatabaseManager {
             plugin.getLogger().log(Level.SEVERE, "Error while creating the database!", e);
         }
 
+        initActiveBoostersTable();
+
         plugin.sendConsole("<green>Successfully initialized database.</green>");
+    }
+
+    private void initActiveBoostersTable() {
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("""
+                    CREATE TABLE IF NOT EXISTS active_boosters (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        island_uuid TEXT NOT NULL,
+                        booster_id TEXT NOT NULL,
+                        expiry_time LONG,
+                        cooldown_end LONG);
+                    """);
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Error while creating active_boosters table!", e);
+        }
     }
 
     public Connection getConnection() throws SQLException {
@@ -353,6 +371,69 @@ public class DatabaseManager {
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Error while deleting from database!", e);
         }
+    }
+
+    public void saveActiveBooster(String islandUUID, String boosterId, long expiryTime, long cooldownEnd) {
+        String query = "INSERT INTO active_boosters (island_uuid, booster_id, expiry_time, cooldown_end) VALUES (?, ?, ?, ?)";
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection connection = getConnection();
+                 PreparedStatement stmt = connection.prepareStatement(query)) {
+                stmt.setString(1, islandUUID);
+                stmt.setString(2, boosterId);
+                stmt.setLong(3, expiryTime);
+                stmt.setLong(4, cooldownEnd);
+                stmt.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error while saving active booster!", e);
+            }
+        });
+    }
+
+    public CompletableFuture<List<Object[]>> loadActiveBoostersAsync() {
+        CompletableFuture<List<Object[]>> future = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            List<Object[]> rows = new ArrayList<>();
+            String query = "SELECT id, island_uuid, booster_id, expiry_time, cooldown_end FROM active_boosters";
+
+            try (Connection connection = getConnection();
+                 PreparedStatement stmt = connection.prepareStatement(query);
+                 ResultSet rs = stmt.executeQuery()) {
+
+                while (rs.next()) {
+                    rows.add(new Object[]{
+                            rs.getInt("id"),
+                            rs.getString("island_uuid"),
+                            rs.getString("booster_id"),
+                            rs.getLong("expiry_time"),
+                            rs.getLong("cooldown_end")
+                    });
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error while loading active boosters!", e);
+                future.completeExceptionally(e);
+                return;
+            }
+
+            future.complete(rows);
+        });
+
+        return future;
+    }
+
+    public void deleteActiveBooster(int dbId) {
+        String query = "DELETE FROM active_boosters WHERE id = ?";
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection connection = getConnection();
+                 PreparedStatement stmt = connection.prepareStatement(query)) {
+                stmt.setInt(1, dbId);
+                stmt.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Error while deleting active booster!", e);
+            }
+        });
     }
 
     public void closePool() {

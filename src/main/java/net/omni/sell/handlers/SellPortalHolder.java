@@ -9,7 +9,7 @@ public record SellPortalHolder(SellPortal portal, InventoryType type) implements
     @Override
     public @NotNull Inventory getInventory() {
         return switch (type) {
-            case MAIN -> portal.getMainInventory();
+            case MAIN, BOOSTER -> portal.getMainInventory();
             case WHITELIST -> portal.getWhitelistInventory();
             case BLACKLIST -> portal.getBlacklistInventory();
         };

@@ -12,6 +12,7 @@ import net.omni.sell.hooks.ExcellentEconomyHook;
 import net.omni.sell.hooks.SuperiorSkyblock2Hook;
 import net.omni.sell.listeners.GUIListener;
 import net.omni.sell.listeners.PortalListener;
+import net.omni.sell.managers.BoosterManager;
 import net.omni.sell.managers.DatabaseManager;
 import net.omni.sell.managers.MessagesManager;
 import net.omni.sell.managers.PortalManager;
@@ -68,6 +69,8 @@ public final class OmniSell extends JavaPlugin {
 
     private PortalManager portalManager;
 
+    private BoosterManager boosterManager;
+
     private SellItemHandler sellItemHandler;
 
     private ConfigUtil configUtil;
@@ -75,6 +78,7 @@ public final class OmniSell extends JavaPlugin {
     @Override
     public void onDisable() {
         portalManager.saveDirty();
+        boosterManager.shutdown();
 
         configUtil.flush();
         messagesManager.flush();
@@ -108,6 +112,9 @@ public final class OmniSell extends JavaPlugin {
 
         this.configUtil = new ConfigUtil(this);
         configUtil.load();
+
+        this.boosterManager = new BoosterManager(this);
+        boosterManager.init();
 
         this.sellItemHandler = new SellItemHandler(this);
         sellItemHandler.load();
@@ -204,6 +211,10 @@ public final class OmniSell extends JavaPlugin {
 
     public PortalManager getPortalManager() {
         return portalManager;
+    }
+
+    public BoosterManager getBoosterManager() {
+        return boosterManager;
     }
 
     public SuperiorSkyblock2Hook getSuperiorSkyblock2Hook() {

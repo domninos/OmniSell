@@ -2,13 +2,18 @@ package net.omni.sell.config;
 
 import net.omni.sell.OmniSell;
 import org.bukkit.Material;
+import org.bukkit.configuration.ConfigurationSection;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.IntConsumer;
 
 public class ConfigUtil {
     private final OmniSell plugin;
+    private List<Map<String, Object>> sellBoosterDefs;
 
     public ConfigUtil(OmniSell plugin) {
         this.plugin = plugin;
@@ -83,7 +88,11 @@ public class ConfigUtil {
     }
 
     public int getPickupSlot() {
-        return plugin.getConfig().getInt("gui.main.pickup_slot", 13);
+        return plugin.getConfig().getInt("gui.main.pickup_slot", 16);
+    }
+
+    public int getBoosterSlot() {
+        return plugin.getConfig().getInt("gui.main.booster_slot", 10);
     }
 
     public Material getPickupMat() {
@@ -149,6 +158,53 @@ public class ConfigUtil {
 
     public List<String> getBackButtonLore() {
         return plugin.getConfig().getStringList("gui.back_button.lore");
+    }
+
+    public Material getBoosterMat() {
+        String name = plugin.getConfig().getString("gui.booster_button.material", "EXPERIENCE_BOTTLE");
+        try {
+            return Material.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Material.EXPERIENCE_BOTTLE;
+        }
+    }
+
+    public String getBoosterDisplayName() {
+        return plugin.getConfig().getString("gui.booster_button.display_name", "<green>Sell Boosters</green>");
+    }
+
+    public List<String> getBoosterLore() {
+        return plugin.getConfig().getStringList("gui.booster_button.lore");
+    }
+
+    public int getBoostersGuiSize() {
+        return plugin.getConfig().getInt("gui.boosters.size", 27);
+    }
+
+    public String getBoostersGuiTitle() {
+        return plugin.getConfig().getString("gui.boosters.title",
+                "<gradient:#00AAFF:#55FFFF>Sell Boosters</gradient>");
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getSellBoosterDefs() {
+        if (sellBoosterDefs != null) return sellBoosterDefs;
+        sellBoosterDefs = new ArrayList<>();
+        ConfigurationSection section = plugin.getConfig().getConfigurationSection("sell_boosters");
+        if (section == null) return sellBoosterDefs;
+        for (String key : section.getKeys(false)) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", key);
+            map.put("slot", section.getInt(key + ".slot"));
+            map.put("material", section.getString(key + ".material"));
+            map.put("display_name", section.getString(key + ".display_name"));
+            map.put("lore", section.getStringList(key + ".lore"));
+            map.put("multiplier", section.getDouble(key + ".multiplier"));
+            map.put("duration", section.getLong(key + ".duration"));
+            map.put("cooldown", section.getLong(key + ".cooldown"));
+            sellBoosterDefs.add(map);
+        }
+        return sellBoosterDefs;
     }
 
     public Material getWhitelistMat() {

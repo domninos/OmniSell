@@ -61,11 +61,12 @@ public class SellPortal {
 
     private void setupMainButtons() {
         int size = mainInventory.getSize();
+        ItemStack filler = createItem(
+                plugin.getConfigUtil().getFillerMat(),
+                plugin.getConfigUtil().getFillerDisplayName());
 
-        for (int i = size - 1; i >= (size - 9); i--)
-            mainInventory.setItem(i, createItem(
-                    plugin.getConfigUtil().getFillerMat(),
-                    plugin.getConfigUtil().getFillerDisplayName()));
+        for (int i = 0; i < size; i++)
+            mainInventory.setItem(i, filler.clone());
 
         mainInventory.setItem(plugin.getConfigUtil().getWhitelistSlot(),
                 createItem(plugin.getConfigUtil().getWhitelistMat(),
@@ -81,6 +82,11 @@ public class SellPortal {
                 createItem(plugin.getConfigUtil().getPickupMat(),
                         plugin.getConfigUtil().getPickupDisplayName(),
                         plugin.getConfigUtil().getPickupLore()));
+
+        mainInventory.setItem(plugin.getConfigUtil().getBoosterSlot(),
+                createItem(plugin.getConfigUtil().getBoosterMat(),
+                        plugin.getConfigUtil().getBoosterDisplayName(),
+                        plugin.getConfigUtil().getBoosterLore()));
 
         mainInventory.setItem(plugin.getConfigUtil().getBackSlot(),
                 createItem(plugin.getConfigUtil().getBackButtonMat(),
@@ -303,6 +309,34 @@ public class SellPortal {
 
     public boolean isPickupSlot(int slot) {
         return slot == plugin.getConfigUtil().getPickupSlot();
+    }
+
+    public boolean isBoosterSlot(int slot) {
+        return slot == plugin.getConfigUtil().getBoosterSlot();
+    }
+
+    public Inventory buildBoostersGUI() {
+        int size = plugin.getConfigUtil().getBoostersGuiSize();
+        Inventory gui = renderer.createInventory(
+                new SellPortalHolder(this, InventoryType.BOOSTER),
+                size,
+                plugin.getConfigUtil().getBoostersGuiTitle());
+
+        ItemStack filler = createItem(
+                plugin.getConfigUtil().getFillerMat(),
+                plugin.getConfigUtil().getFillerDisplayName());
+        for (int i = 0; i < size; i++)
+            gui.setItem(i, filler.clone());
+
+        if (plugin.getConfigUtil().getBackSlot() < size)
+            gui.setItem(plugin.getConfigUtil().getBackSlot(),
+                    createItem(plugin.getConfigUtil().getBackButtonMat(),
+                            plugin.getConfigUtil().getBackButtonDisplayName(),
+                            plugin.getConfigUtil().getBackButtonLore()));
+
+        plugin.getBoosterManager().placeBoosterItems(this, gui);
+
+        return gui;
     }
 
     public void save() {

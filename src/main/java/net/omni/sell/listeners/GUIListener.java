@@ -1,6 +1,7 @@
 package net.omni.sell.listeners;
 
 import net.omni.sell.OmniSell;
+import net.omni.sell.handlers.SellBooster;
 import net.omni.sell.handlers.SellPortal;
 import net.omni.sell.handlers.SellPortalHolder;
 import net.omni.sell.util.InventoryType;
@@ -48,12 +49,14 @@ public class GUIListener implements Listener {
             String mainTitle = plugin.getConfigUtil().getGuiMainTitle();
             String whitelistTitle = plugin.getConfigUtil().getWhitelistTitle();
             String blacklistTitle = plugin.getConfigUtil().getBlacklistTitle();
+            String boostersTitle = plugin.getConfigUtil().getBoostersGuiTitle();
 
-            if (title.equals(whitelistTitle) || title.equals(blacklistTitle) || title.equals(mainTitle)) {
+            if (title.equals(whitelistTitle) || title.equals(blacklistTitle) || title.equals(mainTitle) || title.equals(boostersTitle)) {
                 SellPortal p = findPortalByInventoryMatch(top);
                 if (p != null) {
                     InventoryType t = title.equals(whitelistTitle) ? InventoryType.WHITELIST
-                            : title.equals(blacklistTitle) ? InventoryType.BLACKLIST : InventoryType.MAIN;
+                            : title.equals(blacklistTitle) ? InventoryType.BLACKLIST
+                            : title.equals(boostersTitle) ? InventoryType.BOOSTER : InventoryType.MAIN;
                     return new PortalContext(p, t);
                 }
             }
@@ -94,6 +97,7 @@ public class GUIListener implements Listener {
             case MAIN -> handleMainClick(player, ctx.portal(), slot, isTop, event);
             case WHITELIST -> handleFilterClick(ctx.portal(), InventoryType.WHITELIST, slot, isTop, event, view);
             case BLACKLIST -> handleFilterClick(ctx.portal(), InventoryType.BLACKLIST, slot, isTop, event, view);
+            case BOOSTER -> handleBoosterClick(player, ctx.portal(), slot, isTop, event);
         }
     }
 
@@ -103,23 +107,42 @@ public class GUIListener implements Listener {
             return;
         }
 
-        if (portal.isButtonSlot(slot)) {
-            if (portal.isBackButtonSlot(slot)) {
-                player.closeInventory();
-                return;
-            }
+        if (portal.isBackButtonSlot(slot)) {
+            player.closeInventory();
+        } else if (portal.isWhitelistSlot(slot)) {
+            player.closeInventory();
+            player.openInventory(portal.buildWhitelistGUI());
+        } else if (portal.isBlacklistSlot(slot)) {
+            player.closeInventory();
+            player.openInventory(portal.buildBlacklistGUI());
+        } else if (portal.isPickupSlot(slot)) {
+            plugin.getPortalManager().handlePickupPortal(player, portal);
+        } else if (portal.isBoosterSlot(slot)) {
+            player.closeInventory();
+            player.openInventory(portal.buildBoostersGUI());
+        }
+    }
 
-            if (portal.isWhitelistSlot(slot)) {
-                player.closeInventory();
-                player.openInventory(portal.buildWhitelistGUI());
-            } else if (portal.isBlacklistSlot(slot)) {
-                player.closeInventory();
-                player.openInventory(portal.buildBlacklistGUI());
-            } else if (portal.isPickupSlot(slot)) {
-                plugin.getPortalManager().handlePickupPortal(player, portal);
-            }
+    private void handleBoosterClick(Player player, SellPortal portal, int slot, boolean isTop, InventoryClickEvent event) {
+        if (plugin.getConfigUtil().getBackSlot() == slot) {
+            portal.openMainMenu(player);
             return;
         }
+
+        SellBooster booster = null;
+        for (SellBooster b : plugin.getBoosterManager().getBoosterDefs()) {
+            if (b.guiSlot() == slot) {
+                booster = b;
+                break;
+            }
+        }
+        if (booster == null) return;
+
+        String islandUUID = portal.getIslandUUID();
+        if (islandUUID == null || islandUUID.isEmpty()) return;
+
+        plugin.getBoosterManager().activateBooster(player, islandUUID, booster);
+        player.openInventory(portal.buildBoostersGUI());
     }
 
     private void handleFilterClick(SellPortal portal, InventoryType type,
@@ -177,7 +200,7 @@ public class GUIListener implements Listener {
         }
 
         ItemStack cursor = event.getCursor();
-        if (cursor != null && !cursor.getType().isAir()) {
+        if (!cursor.getType().isAir()) {
             if (portal.isInOtherFilter(type, cursor)) {
                 event.setCancelled(true);
                 return;
@@ -247,7 +270,7 @@ public class GUIListener implements Listener {
         switch (ctx.type()) {
             case WHITELIST -> ctx.portal().applyWhitelistChanges(top);
             case BLACKLIST -> ctx.portal().applyBlacklistChanges(top);
-            case MAIN -> {}
+            case MAIN, BOOSTER -> {}
         }
 
         ctx.portal().save();
