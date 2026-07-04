@@ -203,10 +203,13 @@ public class GUIListener implements Listener {
                 break;
             }
         }
-        if (booster == null) return;
+
+        if (booster == null)
+            return;
 
         String islandUUID = portal.getIslandUUID();
-        if (islandUUID == null || islandUUID.isEmpty()) return;
+        if (islandUUID == null || islandUUID.isEmpty())
+            return;
 
         plugin.getBoosterManager().activateBooster(player, islandUUID, booster);
         player.openInventory(portal.buildBoostersGUI());
@@ -219,15 +222,18 @@ public class GUIListener implements Listener {
                     || top == p.getBlacklistInventory())
                 return p;
         }
+
         return null;
     }
 
     private int findEmptySlot(Inventory inv, int limit) {
         for (int i = 0; i < limit; i++) {
             ItemStack it = inv.getItem(i);
+
             if (it == null || it.getType().isAir())
                 return i;
         }
+
         return -1;
     }
 
@@ -238,7 +244,8 @@ public class GUIListener implements Listener {
 
         Inventory top = event.getView().getTopInventory();
         PortalContext ctx = detect(top);
-        if (ctx == null) return;
+        if (ctx == null)
+            return;
 
         if (ctx.type() != InventoryType.MAIN) {
             int size = ctx.type() == InventoryType.WHITELIST

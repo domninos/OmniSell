@@ -121,6 +121,7 @@ public class SellPortal {
     private void fillSlots(Inventory inv, List<ItemStack> items, int limit) {
         for (int i = 0; i < Math.min(items.size(), limit); i++) {
             ItemStack it = items.get(i);
+
             if (it != null && it.getType() != Material.AIR)
                 inv.setItem(i, it);
         }
@@ -192,21 +193,27 @@ public class SellPortal {
 
     private boolean hasItems(Inventory inventory) {
         int itemSlots = inventory.getSize() - 9;
+
         for (int i = 0; i < itemSlots; i++) {
             ItemStack it = inventory.getItem(i);
+
             if (it != null && it.getType() != Material.AIR)
                 return true;
         }
+
         return false;
     }
 
     private boolean isInFilter(Inventory filter, ItemStack item) {
         int itemSlots = filter.getSize() - 9;
+
         for (int i = 0; i < itemSlots; i++) {
             ItemStack filterItem = filter.getItem(i);
+
             if (filterItem != null && filterItem.isSimilar(item))
                 return true;
         }
+
         return false;
     }
 
@@ -250,6 +257,7 @@ public class SellPortal {
 
         for (int i = 0; i < Math.min(itemSlots, filterSource.getSize() - 9); i++) {
             ItemStack it = filterSource.getItem(i);
+
             if (it != null && it.getType() != Material.AIR)
                 gui.setItem(i, it.clone());
         }
@@ -290,11 +298,6 @@ public class SellPortal {
         applyFilterChanges(view, blacklistInventory);
     }
 
-    public boolean isButtonSlot(int slot) {
-        int size = mainInventory.getSize();
-        return slot >= size - 9;
-    }
-
     public boolean isWhitelistSlot(int slot) {
         return slot == plugin.getConfigUtil().getWhitelistSlot();
     }
@@ -315,8 +318,10 @@ public class SellPortal {
         return slot == plugin.getConfigUtil().getBoosterSlot();
     }
 
+    // TODO cache
     public Inventory buildBoostersGUI() {
         int size = plugin.getConfigUtil().getBoostersGuiSize();
+
         Inventory gui = renderer.createInventory(
                 new SellPortalHolder(this, InventoryType.BOOSTER),
                 size,
@@ -325,6 +330,7 @@ public class SellPortal {
         ItemStack filler = createItem(
                 plugin.getConfigUtil().getFillerMat(),
                 plugin.getConfigUtil().getFillerDisplayName());
+
         for (int i = 0; i < size; i++)
             gui.setItem(i, filler.clone());
 
@@ -348,15 +354,21 @@ public class SellPortal {
         plugin.getDatabaseManager().saveFull(
                 location, ownerUUID.toString(), size, frameKeys, islandUUID, whitelistItems, blacklistItems);
         dirty = false;
+
+        whitelistItems.clear(); // garbage
+        blacklistItems.clear(); // garbage
     }
 
     private List<ItemStack> extractItems(Inventory inv, int limit) {
         List<ItemStack> result = new ArrayList<>();
+
         for (int i = 0; i < Math.min(limit, inv.getSize()); i++) {
             ItemStack it = inv.getItem(i);
+
             if (it != null && it.getType() != Material.AIR)
                 result.add(it);
         }
+
         return result;
     }
 
