@@ -30,7 +30,10 @@ public enum Messages {
     PORTAL_DISABLED_STATUS("portal_disabled_status", "<red>disabled</red>"),
     PORTAL_NO_SPACE("portal_no_space", "<red>Not enough space to place the portal.</red>"),
     PORTAL_CREATED("portal_created", "<green>Portal created!</green>"),
-    PORTAL_REMOVED("portal_removed", "<green>Portal removed.</green>");
+    PORTAL_REMOVED("portal_removed", "<green>Portal removed.</green>"),
+    PORTAL_NO_EMPTY_SPACE("portal_no_empty_space", "<red>You need an empty inventory slot to pick up the portal.</red>"),
+    PORTAL_PICKED_UP("portal_picked_up", "<green>Portal picked up!</green>"),
+    PORTAL_ALREADY_EXISTS("portal_already_exists", "<red>This island already has a sell portal.</red>");
 
     private final String path;
     private final Object defaultVal;
