@@ -239,7 +239,7 @@ public class SellPortal {
                 plugin.getConfigUtil().getFillerMat(),
                 plugin.getConfigUtil().getFillerDisplayName());
 
-        for (int i = 0; i < size; i++)
+        for (int i = itemSlots; i < size; i++)
             gui.setItem(i, filler.clone());
 
         if (plugin.getConfigUtil().getBackSlot() < size)

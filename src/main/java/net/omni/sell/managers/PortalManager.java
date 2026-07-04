@@ -10,6 +10,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class PortalManager {
@@ -17,7 +18,7 @@ public class PortalManager {
     private final OmniSell plugin;
     private final NamespacedKey sellPortalKey;
     private final Map<Location, SellPortal> portalCache = new LinkedHashMap<>();
-    private final Map<String, Location> frameToAnchor = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<String, Location> frameToAnchor = new ConcurrentHashMap<>();
 
     public PortalManager(OmniSell plugin) {
         this.plugin = plugin;
@@ -41,14 +42,6 @@ public class PortalManager {
         portalCache.put(location, portal);
         for (String key : portal.getFrameKeys())
             frameToAnchor.put(key, location);
-    }
-
-    public void unregisterPortal(Location location) {
-        SellPortal portal = portalCache.remove(location);
-        if (portal != null) {
-            for (String key : portal.getFrameKeys())
-                frameToAnchor.remove(key);
-        }
     }
 
     public SellPortal getPortal(Location location) {
@@ -82,17 +75,22 @@ public class PortalManager {
 
     public void saveAndUnload(Chunk chunk) {
         Iterator<Map.Entry<Location, SellPortal>> it = portalCache.entrySet().iterator();
+
         while (it.hasNext()) {
             Map.Entry<Location, SellPortal> entry = it.next();
             Location loc = entry.getKey();
+
             if (loc.getWorld().equals(chunk.getWorld())
                     && chunk.getX() == loc.getBlockX() >> 4
                     && chunk.getZ() == loc.getBlockZ() >> 4) {
                 SellPortal portal = entry.getValue();
+
                 if (portal.isDirty())
                     portal.save();
+
                 for (String key : portal.getFrameKeys())
                     frameToAnchor.remove(key);
+
                 it.remove();
             }
         }
@@ -114,12 +112,26 @@ public class PortalManager {
 
         PortalListener.removePortalStructure(anchor, portal.getSize());
         unregisterPortal(anchor);
-        plugin.getDatabaseManager().deleteLocationSync(anchor);
+        plugin.getDatabaseManager().deleteLocation(anchor);
         player.getInventory().addItem(plugin.getSellItemHandler().getItemStack(1));
         plugin.sendMessage(player, Messages.PORTAL_PICKED_UP.toString());
     }
 
+    public void unregisterPortal(Location location) {
+        SellPortal portal = portalCache.remove(location);
+
+        if (portal != null) {
+            for (String key : portal.getFrameKeys())
+                frameToAnchor.remove(key);
+
+            portal.flush();
+        }
+    }
+
     public void flush() {
+        if (!portalCache.isEmpty())
+            portalCache.values().forEach(SellPortal::flush);
+
         portalCache.clear();
         frameToAnchor.clear();
     }

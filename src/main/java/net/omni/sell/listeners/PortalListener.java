@@ -7,7 +7,6 @@ import net.omni.sell.OmniSell;
 import net.omni.sell.handlers.SellPortal;
 import net.omni.sell.messages.Messages;
 import net.omni.sell.util.Prices;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
