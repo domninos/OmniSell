@@ -202,6 +202,15 @@ public class ConfigUtil {
             map.put("multiplier", section.getDouble(key + ".multiplier"));
             map.put("duration", section.getLong(key + ".duration"));
             map.put("cooldown", section.getLong(key + ".cooldown"));
+
+            ConfigurationSection costsSection = section.getConfigurationSection(key + ".costs");
+            Map<String, Double> costs = new HashMap<>();
+            if (costsSection != null) {
+                for (String currency : costsSection.getKeys(false))
+                    costs.put(currency, costsSection.getDouble(currency));
+            }
+            map.put("costs", costs);
+
             sellBoosterDefs.add(map);
         }
         return sellBoosterDefs;

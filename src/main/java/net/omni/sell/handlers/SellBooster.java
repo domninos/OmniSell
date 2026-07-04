@@ -7,6 +7,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public record SellBooster(
         String id,
@@ -16,17 +17,21 @@ public record SellBooster(
         double multiplier,
         long durationSeconds,
         long cooldownSeconds,
-        int guiSlot
+        int guiSlot,
+        Map<String, Double> costs
 ) {
     public ItemStack createItem(ChatRenderer renderer) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
 
         if (meta != null) {
+            String costStr = formatCosts();
+
             String name = displayName
                     .replace("%multiplier%", String.valueOf(multiplier))
                     .replace("%duration%", formatDuration(durationSeconds))
-                    .replace("%cooldown%", formatDuration(cooldownSeconds));
+                    .replace("%cooldown%", formatDuration(cooldownSeconds))
+                    .replace("%cost%", costStr);
             renderer.setDisplayName(meta, name);
 
             List<String> processedLore = new ArrayList<>();
@@ -35,16 +40,30 @@ public record SellBooster(
                 processedLore.add(line
                         .replace("%multiplier%", String.valueOf(multiplier))
                         .replace("%duration%", formatDuration(durationSeconds))
-                        .replace("%cooldown%", formatDuration(cooldownSeconds)));
+                        .replace("%cooldown%", formatDuration(cooldownSeconds))
+                        .replace("%cost%", costStr));
             }
 
             renderer.setLore(meta, processedLore);
 
             item.setItemMeta(meta);
 
-            processedLore.clear(); // garbage
+            processedLore.clear();
         }
         return item;
+    }
+
+    public String formatCosts() {
+        if (costs == null || costs.isEmpty())
+            return "Free";
+        List<String> parts = new ArrayList<>();
+        for (Map.Entry<String, Double> entry : costs.entrySet()) {
+            String amount = entry.getValue() == entry.getValue().longValue()
+                    ? String.valueOf(entry.getValue().longValue())
+                    : String.valueOf(entry.getValue());
+            parts.add(amount + " " + entry.getKey());
+        }
+        return String.join(", ", parts);
     }
 
     public String formatDuration(long seconds) {

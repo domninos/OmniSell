@@ -57,7 +57,10 @@ public class BoosterManager {
             long cooldown = ((Number) def.getOrDefault("cooldown", -1)).longValue();
             int slot = ((Number) def.getOrDefault("slot", 12)).intValue();
 
-            boosterDefs.add(new SellBooster(id, mat, rawDisplayName, loreStr, multiplier, duration, cooldown, slot));
+            @SuppressWarnings("unchecked")
+            Map<String, Double> costs = (Map<String, Double>) def.getOrDefault("costs", Map.of());
+
+            boosterDefs.add(new SellBooster(id, mat, rawDisplayName, loreStr, multiplier, duration, cooldown, slot, costs));
         }
         plugin.sendConsole("<green>Loaded " + boosterDefs.size() + " sell booster definitions.</green>");
     }
@@ -151,6 +154,21 @@ public class BoosterManager {
             plugin.sendMessage(player, Messages.BOOSTER_ON_COOLDOWN.toString()
                     .replace("%remaining%", booster.formatDuration(existing.getRemainingCooldown())));
             return;
+        }
+
+        if (!booster.costs().isEmpty() && plugin.getExcellentEconomyHook().isEnabled()) {
+            for (Map.Entry<String, Double> entry : booster.costs().entrySet()) {
+                double balance = plugin.getExcellentEconomyHook().getBalance(player, entry.getKey());
+
+                if (balance < entry.getValue()) {
+                    plugin.sendMessage(player, Messages.BOOSTER_NO_MONEY.toString()
+                            .replace("%cost%", booster.formatCosts()));
+                    return;
+                }
+            }
+
+            for (Map.Entry<String, Double> entry : booster.costs().entrySet())
+                plugin.getExcellentEconomyHook().removeMoney(player, entry.getKey(), entry.getValue());
         }
 
         long expiryTime = booster.durationSeconds() == -1 ? -1

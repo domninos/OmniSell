@@ -33,21 +33,39 @@ public class ExcellentEconomyHook {
             this.currencyId = plugin.getConfig().getString("economy.currency", "coins");
             this.enabled = true;
 
-            plugin.sendConsole("<green>Successfully hooked into ExcellentEconomy</green>");
+            plugin.sendConsole("<green>Successfully hooked into ExcellentEconomy: Detected "
+                    + currencyId + "</green>");
         }
     }
 
     public void addMoney(Player player, double amount) {
-        if (!canPerform()) return;
-        api.deposit(player, currencyId, amount, context);
+        if (canPerform())
+            api.deposit(player, currencyId, amount, context);
+    }
+
+    public boolean canPerform() {
+        return isEnabled() && api.canPerformOperations();
+    }
+
+    public void removeMoney(Player player, double amount) {
+        removeMoney(player, currencyId, amount);
+    }
+
+    public void removeMoney(Player player, String currencyId, double amount) {
+        if (canPerform())
+            api.withdraw(player, currencyId, amount, context);
+    }
+
+    public double getBalance(Player player, double amount) {
+        return getBalance(player, currencyId);
+    }
+
+    public double getBalance(Player player, String currencyId) {
+        return isEnabled() ? api.getBalance(player, currencyId) : -1;
     }
 
     public Optional<ExcellentEconomyAPI> getApi() {
         return Optional.ofNullable(api);
-    }
-
-    public boolean canPerform() {
-        return enabled && api.canPerformOperations();
     }
 
     public boolean isEnabled() {
