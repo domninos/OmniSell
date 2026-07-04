@@ -190,7 +190,7 @@ public class PortalListener implements Listener {
 
         removePortalStructure(anchor, portal.getSize());
         plugin.getPortalManager().unregisterPortal(anchor);
-        plugin.getDatabaseManager().deleteLocationSync(anchor);
+        plugin.getDatabaseManager().deleteLocation(anchor);
 
         ItemStack portalItem = plugin.getSellItemHandler().getItemStack(1);
         block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.5, 0.5), portalItem);
@@ -294,6 +294,9 @@ public class PortalListener implements Listener {
         if (price <= 0)
             return;
 
+        double multiplier = plugin.getBoosterManager().getActiveMultiplier(portal.getIslandUUID());
+        price *= multiplier;
+
         if (plugin.getSuperiorSkyblock2Hook().isEnabled()) {
             Island island = SuperiorSkyblockAPI.getIslandAt(portal.getLocation());
 
@@ -311,6 +314,7 @@ public class PortalListener implements Listener {
             BigDecimal currentBal = islandBank.getBalance();
 
             islandBank.setBalance(currentBal.add(bigDecimal));
+            island.savePersistentDataContainer();
         }
 
         item.remove();
