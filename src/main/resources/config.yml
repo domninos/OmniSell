@@ -65,9 +65,65 @@ sell_boosters:
       - "<gray>Duration:</gray> <gold>%duration%</gold>"
       - ""
       - "<gray>Cooldown:</gray> <gold>%cooldown%</gold>"
+      - ""
+      - "<gray>Cost:</gray> <gold>%cost%</gold>"
     multiplier: 2.0
     duration: 1800
     cooldown: -1
+    costs:
+      coins: 100.0
+
+  one_half:
+    slot: 12
+    material: ENCHANTED_GOLDEN_APPLE
+    display_name: "<gradient:#FFAA00:#FF5500>1.5x Sell Booster</gradient>"
+    lore:
+      - "<gray>Multiplies sell prices by</gray> <gold>%multiplier%x</gold>"
+      - ""
+      - "<gray>Duration:</gray> <gold>%duration%</gold>"
+      - "<gray>Cooldown:</gray> <gold>%cooldown%</gold>"
+      - ""
+      - "<gray>Cost:</gray> <gold>%cost%</gold>"
+    multiplier: 1.5
+    duration: 600
+    cooldown: 300
+    costs:
+      coins: 25.0
+
+  triple_sell:
+    slot: 14
+    material: BEACON
+    display_name: "<gradient:#55FF55:#00AA00>3x Sell Booster</gradient>"
+    lore:
+      - "<gray>Multiplies sell prices by</gray> <gold>%multiplier%x</gold>"
+      - ""
+      - "<gray>Duration:</gray> <gold>%duration%</gold>"
+      - "<gray>Cooldown:</gray> <gold>%cooldown%</gold>"
+      - ""
+      - "<gray>Cost:</gray> <gold>%cost%</gold>"
+    multiplier: 3.0
+    duration: 900
+    cooldown: 1800
+    costs:
+      coins: 250.0
+      levelxp: 50.0
+
+  instant_boost:
+    slot: 16
+    material: FEATHER
+    display_name: "<gradient:#AAAAFF:#5555FF>5x Flash Booster</gradient>"
+    lore:
+      - "<gray>Multiplies sell prices by</gray> <gold>%multiplier%x</gold>"
+      - ""
+      - "<gray>Duration:</gray> <gold>%duration%</gold>"
+      - "<gray>Cooldown:</gray> <gold>%cooldown%</gold>"
+      - ""
+      - "<gray>Cost:</gray> <gold>%cost%</gold>"
+    multiplier: 5.0
+    duration: 60
+    cooldown: 600
+    costs:
+      coins: 500.0
 
 tier:
   1:
