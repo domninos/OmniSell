@@ -145,13 +145,6 @@ public class GUIListener implements Listener {
                 ItemStack one = moved.clone();
                 one.setAmount(1);
                 top.setItem(emptySlot, one);
-
-                ItemStack remainder = moved.clone();
-                remainder.setAmount(moved.getAmount() - 1);
-                if (remainder.getAmount() > 0)
-                    event.getView().getBottomInventory().setItem(event.getSlot(), remainder);
-                else
-                    event.getView().getBottomInventory().setItem(event.getSlot(), null);
                 return;
             }
 
@@ -174,17 +167,12 @@ public class GUIListener implements Listener {
             ItemStack one = cursor.clone();
             one.setAmount(1);
             event.setCurrentItem(one);
-
-            ItemStack newCursor = cursor.clone();
-            newCursor.setAmount(cursor.getAmount() - 1);
-            event.setCursor(newCursor.getAmount() > 0 ? newCursor : null);
             portal.markDirty();
             return;
         }
 
         ItemStack current = event.getCurrentItem();
         if (current != null && !current.getType().isAir()) {
-            event.setCursor(current);
             event.setCurrentItem(null);
             portal.markDirty();
         }
