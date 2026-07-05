@@ -25,14 +25,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class OmniSell extends JavaPlugin {
 
     /*
-        We make an end portal and any item that drops through the end portal automatically gets sold to the Skyblock Island Team that owns the portal
-
-        Required hooks for this one would be
-        ShopGUI+
-        Skyblock Core
-        CoinsEngine (Economy)
-
-        max island size will be 250x250
 
         TODO
             .
@@ -53,9 +45,6 @@ public final class OmniSell extends JavaPlugin {
             fix dropping items causes item to disappear
             fix filter items not properly duplicating (if holding a stack)
             .
-            test skyblock island bank if it persists (IT DOES NOT)
-            .
-            remove economy on config
      */
 
     private ChatRenderer chatRenderer;

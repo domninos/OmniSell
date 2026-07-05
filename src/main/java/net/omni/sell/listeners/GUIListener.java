@@ -45,7 +45,7 @@ public class GUIListener implements Listener {
             case MAIN -> handleMainClick(player, ctx.portal(), slot, isTop, event);
             case WHITELIST -> handleFilterClick(ctx.portal(), InventoryType.WHITELIST, slot, isTop, event, view);
             case BLACKLIST -> handleFilterClick(ctx.portal(), InventoryType.BLACKLIST, slot, isTop, event, view);
-            case BOOSTER -> handleBoosterClick(player, ctx.portal(), slot, isTop, event);
+            case BOOSTER -> handleBoosterClick(player, ctx.portal(), slot);
         }
     }
 
@@ -190,7 +190,7 @@ public class GUIListener implements Listener {
         }
     }
 
-    private void handleBoosterClick(Player player, SellPortal portal, int slot, boolean isTop, InventoryClickEvent event) {
+    private void handleBoosterClick(Player player, SellPortal portal, int slot) {
         if (plugin.getConfigUtil().getBackSlot() == slot) {
             portal.openMainMenu(player);
             return;

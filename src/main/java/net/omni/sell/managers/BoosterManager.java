@@ -156,8 +156,8 @@ public class BoosterManager {
     }
 
     public void activateBooster(Player player, String islandUUID, SellBooster booster) {
-        if (isBoosterActive(islandUUID, booster.id())) {
-            plugin.sendMessage(player, Messages.BOOSTER_ALREADY_ACTIVE.toString());
+        if (isAnyBoosterActive(islandUUID)) {
+            plugin.sendMessage(player, Messages.BOOSTER_ONLY_ONE.toString());
             return;
         }
 
@@ -211,6 +211,17 @@ public class BoosterManager {
         synchronized (boosters) {
             return boosters.stream()
                     .anyMatch(ab -> ab.definition().id().equals(boosterId) && !ab.isExpired());
+        }
+    }
+
+    public boolean isAnyBoosterActive(String islandUUID) {
+        List<ActiveBooster> boosters = activeBoosters.get(islandUUID);
+
+        if (boosters == null)
+            return false;
+
+        synchronized (boosters) {
+            return boosters.stream().anyMatch(ab -> !ab.isExpired());
         }
     }
 
