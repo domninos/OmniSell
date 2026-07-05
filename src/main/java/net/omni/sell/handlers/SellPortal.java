@@ -24,6 +24,7 @@ public class SellPortal {
     private final Inventory mainInventory;
     private final Inventory whitelistInventory;
     private final Inventory blacklistInventory;
+    private Inventory boosterInventory;
 
     private List<String> frameKeys = List.of();
     private String islandUUID;
@@ -279,10 +280,14 @@ public class SellPortal {
 
     private void applyFilterChanges(Inventory view, Inventory target) {
         int limit = Math.min(view.getSize() - 9, target.getSize() - 9);
+
         Material fillerMat = plugin.getConfigUtil().getFillerMat();
         int backSlot = plugin.getConfigUtil().getBackSlot();
+
         for (int i = 0; i < limit; i++) {
-            if (i == backSlot) continue;
+            if (i == backSlot)
+                continue;
+
             ItemStack item = view.getItem(i);
             if (item != null && item.getType() != Material.AIR && item.getType() != fillerMat)
                 target.setItem(i, item);
@@ -318,31 +323,32 @@ public class SellPortal {
         return slot == plugin.getConfigUtil().getBoosterSlot();
     }
 
-    // TODO cache
     public Inventory buildBoostersGUI() {
-        int size = plugin.getConfigUtil().getBoostersGuiSize();
+        if (boosterInventory == null) {
+            int size = plugin.getConfigUtil().getBoostersGuiSize();
 
-        Inventory gui = renderer.createInventory(
-                new SellPortalHolder(this, InventoryType.BOOSTER),
-                size,
-                plugin.getConfigUtil().getBoostersGuiTitle());
+            boosterInventory = renderer.createInventory(
+                    new SellPortalHolder(this, InventoryType.BOOSTER),
+                    size,
+                    plugin.getConfigUtil().getBoostersGuiTitle());
 
-        ItemStack filler = createItem(
-                plugin.getConfigUtil().getFillerMat(),
-                plugin.getConfigUtil().getFillerDisplayName());
+            ItemStack filler = createItem(
+                    plugin.getConfigUtil().getFillerMat(),
+                    plugin.getConfigUtil().getFillerDisplayName());
 
-        for (int i = 0; i < size; i++)
-            gui.setItem(i, filler.clone());
+            for (int i = 0; i < size; i++)
+                boosterInventory.setItem(i, filler.clone());
 
-        if (plugin.getConfigUtil().getBackSlot() < size)
-            gui.setItem(plugin.getConfigUtil().getBackSlot(),
-                    createItem(plugin.getConfigUtil().getBackButtonMat(),
-                            plugin.getConfigUtil().getBackButtonDisplayName(),
-                            plugin.getConfigUtil().getBackButtonLore()));
+            if (plugin.getConfigUtil().getBackSlot() < size)
+                boosterInventory.setItem(plugin.getConfigUtil().getBackSlot(),
+                        createItem(plugin.getConfigUtil().getBackButtonMat(),
+                                plugin.getConfigUtil().getBackButtonDisplayName(),
+                                plugin.getConfigUtil().getBackButtonLore()));
+        }
 
-        plugin.getBoosterManager().placeBoosterItems(this, gui);
+        plugin.getBoosterManager().placeBoosterItems(this, boosterInventory);
 
-        return gui;
+        return boosterInventory;
     }
 
     public void save() {
@@ -376,6 +382,7 @@ public class SellPortal {
         mainInventory.clear();
         whitelistInventory.clear();
         blacklistInventory.clear();
+        boosterInventory = null;
         this.dirty = false;
     }
 }
