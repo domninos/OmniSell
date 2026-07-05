@@ -36,8 +36,10 @@ public class BoosterManager {
 
     private void loadDefinitions() {
         boosterDefs.clear();
+
         for (Map<String, Object> def : plugin.getConfigUtil().getSellBoosterDefs()) {
             String id = (String) def.get("id");
+
             if (id == null)
                 continue;
 
@@ -50,7 +52,8 @@ public class BoosterManager {
 
             String rawDisplayName = (String) def.getOrDefault("display_name", "<gold>Booster</gold>");
 
-            List<String> loreStr = (List<String>) def.getOrDefault("lore", new ArrayList<>());
+            @SuppressWarnings("unchecked")
+            List<String> loreStr = (List<String>) def.getOrDefault("lore", List.of());
 
             double multiplier = ((Number) def.getOrDefault("multiplier", 2.0)).doubleValue();
             long duration = ((Number) def.getOrDefault("duration", 1800)).longValue();
