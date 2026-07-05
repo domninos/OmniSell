@@ -97,16 +97,13 @@ public class GUIListener implements Listener {
         if (portal.isBackButtonSlot(slot)) {
             player.closeInventory();
         } else if (portal.isWhitelistSlot(slot)) {
-            player.closeInventory();
             player.openInventory(portal.buildWhitelistGUI());
         } else if (portal.isBlacklistSlot(slot)) {
-            player.closeInventory();
             player.openInventory(portal.buildBlacklistGUI());
         } else if (portal.isPickupSlot(slot)) {
             player.closeInventory();
             plugin.getPortalManager().handlePickupPortal(player, portal);
         } else if (portal.isBoosterSlot(slot)) {
-            player.closeInventory();
             player.openInventory(portal.buildBoostersGUI());
         }
     }
@@ -207,23 +204,6 @@ public class GUIListener implements Listener {
         player.openInventory(portal.buildBoostersGUI());
     }
 
-    private void playFilterSound(Player player, boolean isWhitelist) {
-        String soundName = isWhitelist
-                ? plugin.getConfigUtil().getWhitelistSound()
-                : plugin.getConfigUtil().getBlacklistSound();
-        float volume = isWhitelist
-                ? plugin.getConfigUtil().getWhitelistSoundVolume()
-                : plugin.getConfigUtil().getBlacklistSoundVolume();
-        float pitch = isWhitelist
-                ? plugin.getConfigUtil().getWhitelistSoundPitch()
-                : plugin.getConfigUtil().getBlacklistSoundPitch();
-
-        try {
-            player.playSound(player.getLocation(), Sound.valueOf(soundName), volume, pitch);
-        } catch (IllegalArgumentException ignored) {
-        }
-    }
-
     private SellPortal findPortalByInventoryMatch(Inventory top) {
         for (SellPortal p : plugin.getPortalManager().getPortals()) {
             if (top == p.getMainInventory()
@@ -244,6 +224,23 @@ public class GUIListener implements Listener {
         }
 
         return -1;
+    }
+
+    private void playFilterSound(Player player, boolean isWhitelist) {
+        String soundName = isWhitelist
+                ? plugin.getConfigUtil().getWhitelistSound()
+                : plugin.getConfigUtil().getBlacklistSound();
+        float volume = isWhitelist
+                ? plugin.getConfigUtil().getWhitelistSoundVolume()
+                : plugin.getConfigUtil().getBlacklistSoundVolume();
+        float pitch = isWhitelist
+                ? plugin.getConfigUtil().getWhitelistSoundPitch()
+                : plugin.getConfigUtil().getBlacklistSoundPitch();
+
+        try {
+            player.playSound(player.getLocation(), Sound.valueOf(soundName), volume, pitch);
+        } catch (IllegalArgumentException ignored) {
+        }
     }
 
     @EventHandler
