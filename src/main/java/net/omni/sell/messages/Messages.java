@@ -20,24 +20,33 @@ public enum Messages {
     PORTAL_LIST_ENTRY("portal_list_entry", "  <#00AAFF>%index%.</#00AAFF> <gray>%world%</gray> <dark_gray>at</dark_gray> <white>%x%,%y%,%z%</white> <dark_gray>-</dark_gray> %owner% %status%"),
     PORTAL_LIST_FOOTER("portal_list_footer", "<dark_gray>▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪</dark_gray>"),
     PORTAL_LIST_EMPTY("portal_list_empty", "<gray>No portals found.</gray>"),
+
     PORTAL_NOT_FOUND("portal_not_found", "<red>Portal not found at index %index%.</red>"),
     PORTAL_TP_SUCCESS("portal_tp_success", "<green>Teleported to portal #%index%.</green>"),
+
     PORTAL_DISABLED_GLOBAL("portal_disabled_global", "<red>All portals are currently disabled.</red>"),
     PORTAL_DISABLED("portal_disabled", "<red>That portal is disabled.</red>"),
+
     PORTAL_TOGGLE_GLOBAL("portal_toggle_global", "<green>Portals are now %state%.</green>"),
     PORTAL_TOGGLE("portal_toggle", "<green>Portal #%index% is now %state%.</green>"),
+
     PORTAL_ENABLED("portal_enabled", "<green>enabled</green>"),
     PORTAL_DISABLED_STATUS("portal_disabled_status", "<red>disabled</red>"),
+
     PORTAL_NO_SPACE("portal_no_space", "<red>Not enough space to place the portal.</red>"),
     PORTAL_CREATED("portal_created", "<green>Portal created!</green>"),
     PORTAL_REMOVED("portal_removed", "<green>Portal removed.</green>"),
+
     PORTAL_NO_EMPTY_SPACE("portal_no_empty_space", "<red>You need an empty inventory slot to pick up the portal.</red>"),
     PORTAL_PICKED_UP("portal_picked_up", "<green>Portal picked up!</green>"),
     PORTAL_ALREADY_EXISTS("portal_already_exists", "<red>This island already has a sell portal.</red>"),
+
     BOOSTER_ACTIVATED("booster_activated", "<green>Booster</green> <gold>%booster%</gold> <green>activated!</green> <gray>(%multiplier%x for %duration%)</gray>"),
     BOOSTER_ON_COOLDOWN("booster_on_cooldown", "<red>That booster is on cooldown.</red> <gray>%remaining% remaining.</gray>"),
     BOOSTER_ALREADY_ACTIVE("booster_already_active", "<red>That booster is already active on your island.</red>"),
-    BOOSTER_NO_MONEY("booster_no_money", "<red>You need %cost% to activate this booster.</red>");
+
+    BOOSTER_NO_MONEY("booster_no_money", "<red>You need %cost% to activate this booster.</red>"),
+    BOOSTER_ONLY_ONE("booster_only_one", "<red>Only one booster can be active at a time on your island.</red>");
 
     private final String path;
     private final Object defaultVal;

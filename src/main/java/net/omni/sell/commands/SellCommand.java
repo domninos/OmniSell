@@ -57,7 +57,21 @@ public class SellCommand implements CommandExecutor {
                 sender.sendMessage(MessageUtil.parse(getAboutText()));
             else if (args[0].equalsIgnoreCase("give"))
                 plugin.sendMessage(sender, Messages.USAGE.replace("usage", "/omnisell give (player) [amount]"));
-            else if (args[0].equalsIgnoreCase("list")) {
+            else if (args[0].equalsIgnoreCase("toggle")) {
+                if (!sender.hasPermission("omnisell.toggle")) {
+                    plugin.sendMessage(sender, Messages.NO_PERMS.toString());
+                    return true;
+                }
+
+                boolean now = !plugin.getPortalManager().isGloballyEnabled();
+                plugin.getPortalManager().setGloballyEnabled(now);
+
+                String state = now
+                        ? Messages.PORTAL_ENABLED.toString()
+                        : Messages.PORTAL_DISABLED_STATUS.toString();
+
+                plugin.sendMessage(sender, Messages.PORTAL_TOGGLE_GLOBAL.replace("state", state));
+            } else if (args[0].equalsIgnoreCase("list")) {
                 if (!sender.hasPermission("omnisell.list")) {
                     plugin.sendMessage(sender, Messages.NO_PERMS.toString());
                     return true;
@@ -97,7 +111,7 @@ public class SellCommand implements CommandExecutor {
         helpBuilder.append("  <gradient:#00AAFF:#55FFFF><bold>OmniSell</bold></gradient> <gray>\n\n");
 
         if (sender.hasPermission("omnisell.use")) {
-            MessageUtil.append("omnisell", "Base command for OmniSell.", helpBuilder);
+            MessageUtil.append("omnisell", "Base command for OmniSell.", helpBuilder, "sp");
             MessageUtil.append("omnisell <#55FFFF>help</#55FFFF>", "Shows this help menu.", helpBuilder);
 
             if (sender.hasPermission("omnisell.reload"))
@@ -110,6 +124,9 @@ public class SellCommand implements CommandExecutor {
 
             if (sender.hasPermission("omnisell.list"))
                 MessageUtil.append("omnisell <#55FFFF>list</#55FFFF>", "Lists all portals.", helpBuilder);
+
+            if (sender.hasPermission("omnisell.toggle"))
+                MessageUtil.append("omnisell <#55FFFF>toggle</#55FFFF>", "Globally enables or disables all portals.", helpBuilder);
 
             if (sender.hasPermission("omnisell.tp"))
                 MessageUtil.append("omnisell tp <#55FFFF>(index)</#55FFFF>", "Teleports to a portal.", helpBuilder);
@@ -258,6 +275,9 @@ public class SellCommand implements CommandExecutor {
 
                 if (sender.hasPermission("omnisell.list"))
                     subcommands.add("list");
+
+                if (sender.hasPermission("omnisell.toggle"))
+                    subcommands.add("toggle");
 
                 if (sender.hasPermission("omnisell.tp"))
                     subcommands.add("tp");
