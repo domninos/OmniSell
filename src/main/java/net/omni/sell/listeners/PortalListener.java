@@ -156,10 +156,20 @@ public class PortalListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Block block = event.getBlock();
-        if (block.getType() != Material.END_PORTAL_FRAME) return;
+        Material type = block.getType();
 
-        Location anchor = getAnchorFromBlock(block);
-        if (anchor == null) return;
+        if (type != Material.END_PORTAL_FRAME && type != Material.END_PORTAL)
+            return;
+
+        Location anchor;
+
+        if (type == Material.END_PORTAL_FRAME)
+            anchor = getAnchorFromBlock(block);
+        else
+            anchor = findAnchorFromEndPortal(block);
+
+        if (anchor == null)
+            return;
 
         Player player = event.getPlayer();
         SellPortal portal = plugin.getPortalManager().getPortal(anchor);
@@ -170,7 +180,7 @@ public class PortalListener implements Listener {
 
         if (!portal.getOwnerUUID().equals(player.getUniqueId())) {
             event.setCancelled(true);
-            plugin.sendMessage(player, Messages.NO_PERMS.toString());
+            plugin.sendMessage(player, Messages.PORTAL_NO_PERMS.toString());
             return;
         }
 
@@ -191,6 +201,31 @@ public class PortalListener implements Listener {
         if (block.getType() != Material.END_PORTAL_FRAME)
             return null;
         return plugin.getPortalManager().getAnchorFromFrame(locationKey(block.getLocation()));
+    }
+
+    private Location findAnchorFromEndPortal(Block block) {
+        Location loc = block.getLocation();
+        int chunkX = loc.getBlockX() >> 4;
+        int chunkZ = loc.getBlockZ() >> 4;
+
+        List<SellPortal> portals = plugin.getPortalManager().getPortalsInChunk(chunkX, chunkZ);
+        if (portals == null) return null;
+
+        int ix = loc.getBlockX();
+        int iy = loc.getBlockY();
+        int iz = loc.getBlockZ();
+
+        for (SellPortal portal : portals) {
+            Location a = portal.getLocation();
+            int s = portal.getSize();
+            if (ix >= a.getBlockX() + 1 && ix <= a.getBlockX() + s &&
+                    iy == a.getBlockY() &&
+                    iz >= a.getBlockZ() - s && iz <= a.getBlockZ() - 1) {
+                return a;
+            }
+        }
+
+        return null;
     }
 
     public static void removePortalStructure(Location anchor, int portalSize) {
@@ -224,12 +259,14 @@ public class PortalListener implements Listener {
         if (event.getClickedBlock().getType() != Material.END_PORTAL_FRAME) return;
 
         Location anchor = getAnchorFromBlock(event.getClickedBlock());
-        if (anchor == null) return;
+        if (anchor == null)
+            return;
 
         event.setCancelled(true);
 
         SellPortal portal = plugin.getPortalManager().getPortal(anchor);
-        if (portal == null) return;
+        if (portal == null)
+            return;
 
         if (!plugin.getPortalManager().isGloballyEnabled()) {
             plugin.sendMessage(event.getPlayer(), Messages.PORTAL_DISABLED_GLOBAL.toString());
@@ -238,7 +275,7 @@ public class PortalListener implements Listener {
 
         Player player = event.getPlayer();
         if (!portal.getOwnerUUID().equals(player.getUniqueId())) {
-            plugin.sendMessage(player, Messages.NO_PERMS.toString());
+            plugin.sendMessage(player, Messages.PORTAL_NO_PERMS.toString());
             return;
         }
 

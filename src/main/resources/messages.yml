@@ -16,8 +16,8 @@ portal_list_footer: "<dark_gray>▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪▪
 portal_list_empty: "<gray>No portals found.</gray>"
 
 portal_not_found: "<red>Portal not found at index %index%.</red>"
-
 portal_tp_success: "<green>Teleported to portal #%index%.</green>"
+portal_no_perms: "<red>You do not have permission to use this sell portal.</red>"
 
 portal_disabled_global: "<red>All portals are currently disabled.</red>"
 portal_disabled: "<red>That portal is disabled.</red>"

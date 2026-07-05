@@ -23,6 +23,7 @@ public enum Messages {
 
     PORTAL_NOT_FOUND("portal_not_found", "<red>Portal not found at index %index%.</red>"),
     PORTAL_TP_SUCCESS("portal_tp_success", "<green>Teleported to portal #%index%.</green>"),
+    PORTAL_NO_PERMS("portal_no_perms", "<red>You do not have permission to use this sell portal.</red>"),
 
     PORTAL_DISABLED_GLOBAL("portal_disabled_global", "<red>All portals are currently disabled.</red>"),
     PORTAL_DISABLED("portal_disabled", "<red>That portal is disabled.</red>"),
