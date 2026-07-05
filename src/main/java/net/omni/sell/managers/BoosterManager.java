@@ -16,6 +16,7 @@ import org.jspecify.annotations.NonNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -25,6 +26,7 @@ public class BoosterManager {
     private final OmniSell plugin;
     private final List<SellBooster> boosterDefs = new ArrayList<>();
     private final Map<String, List<ActiveBooster>> activeBoosters = new ConcurrentHashMap<>();
+    private final Map<String, Map<Integer, ItemStack>> cachedBoosterItems = new ConcurrentHashMap<>();
 
     public BoosterManager(OmniSell plugin) {
         this.plugin = plugin;
@@ -99,6 +101,8 @@ public class BoosterManager {
                         counter++;
                     }
 
+                    cachedBoosterItems.clear();
+
                     plugin.sendConsole("<green>Loaded " + counter + " active boosters from database.</green>");
                 }));
     }
@@ -110,6 +114,7 @@ public class BoosterManager {
             if (!expired.isEmpty()) {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     for (ExpiredBoosterInfo info : expired) {
+                        cachedBoosterItems.remove(info.islandUUID);
                         String message = Messages.BOOSTER_EXPIRED.toString().replace("%booster%", info.booster.id());
 
                         if (plugin.getSuperiorSkyblock2Hook() != null) {
@@ -180,7 +185,12 @@ public class BoosterManager {
 
     public void activateBooster(Player player, String islandUUID, SellBooster booster) {
         if (isAnyBoosterActive(islandUUID)) {
-            plugin.sendMessage(player, Messages.BOOSTER_ONLY_ONE.toString());
+            ActiveBooster current = findFirstActiveBooster(islandUUID);
+            String remaining = current != null
+                    ? SellBooster.formatDuration(current.getRemainingDuration() / 1000)
+                    : "Unknown";
+            plugin.sendMessage(player, Messages.BOOSTER_ONLY_ONE.toString()
+                    .replace("%remaining%", remaining));
             return;
         }
 
@@ -234,6 +244,8 @@ public class BoosterManager {
                     plugin.sendMessage(member, broadcastMsg);
             }
         }
+
+        cachedBoosterItems.remove(islandUUID);
     }
 
     public boolean isBoosterActive(String islandUUID, String boosterId) {
@@ -259,6 +271,18 @@ public class BoosterManager {
         }
     }
 
+    public ActiveBooster findFirstActiveBooster(String islandUUID) {
+        List<ActiveBooster> boosters = activeBoosters.get(islandUUID);
+        if (boosters == null) return null;
+
+        synchronized (boosters) {
+            for (ActiveBooster ab : boosters) {
+                if (!ab.isExpired()) return ab;
+            }
+        }
+        return null;
+    }
+
     private ActiveBooster findActiveByDefinition(String islandUUID, SellBooster booster) {
         List<ActiveBooster> boosters = activeBoosters.get(islandUUID);
 
@@ -278,13 +302,20 @@ public class BoosterManager {
     public void placeBoosterItems(SellPortal portal, Inventory gui) {
         String islandUUID = portal.getIslandUUID();
 
+        Map<Integer, ItemStack> cached = cachedBoosterItems.get(islandUUID);
+        if (cached != null) {
+            for (Map.Entry<Integer, ItemStack> entry : cached.entrySet())
+                gui.setItem(entry.getKey(), entry.getValue().clone());
+            return;
+        }
+
+        Map<Integer, ItemStack> items = new HashMap<>();
         for (SellBooster booster : boosterDefs) {
             ItemStack item = booster.createItem(plugin.getChatRenderer());
             ItemMeta meta = item.getItemMeta();
 
             if (meta != null) {
                 List<Component> lore = meta.lore();
-
                 if (lore == null)
                     lore = new ArrayList<>();
 
@@ -296,8 +327,16 @@ public class BoosterManager {
                 meta.lore(lore);
                 item.setItemMeta(meta);
             }
+            ItemStack clone = item.clone();
+            items.put(booster.guiSlot(), clone);
             gui.setItem(booster.guiSlot(), item);
         }
+        cachedBoosterItems.put(islandUUID, items);
+    }
+
+    public void invalidateBoosterCache(String islandUUID) {
+        if (islandUUID != null)
+            cachedBoosterItems.remove(islandUUID);
     }
 
     public void reloadDefinitions() {
@@ -359,11 +398,14 @@ public class BoosterManager {
             }
         }
 
+        cachedBoosterItems.clear();
+
         plugin.sendConsole("<green>Reloaded " + boosterDefs.size() + " booster definitions and updated active boosters.</green>");
     }
 
     public void shutdown() {
         plugin.getDatabaseManager().flushBoosterOps();
+        cachedBoosterItems.clear();
         activeBoosters.clear();
         boosterDefs.clear();
     }

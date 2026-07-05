@@ -58,6 +58,22 @@ public class SellPortal {
                 plugin.getConfigUtil().getBlacklistTitle());
 
         setupMainButtons();
+        initFilterInventory(whitelistInventory);
+        initFilterInventory(blacklistInventory);
+    }
+
+    private void initFilterInventory(Inventory inv) {
+        int itemSlots = inv.getSize() - 9;
+        ItemStack filler = createItem(
+                plugin.getConfigUtil().getFillerMat(),
+                plugin.getConfigUtil().getFillerDisplayName());
+        for (int i = itemSlots; i < inv.getSize(); i++)
+            inv.setItem(i, filler.clone());
+        if (plugin.getConfigUtil().getBackSlot() < inv.getSize())
+            inv.setItem(plugin.getConfigUtil().getBackSlot(),
+                    createItem(plugin.getConfigUtil().getBackButtonMat(),
+                            plugin.getConfigUtil().getBackButtonDisplayName(),
+                            plugin.getConfigUtil().getBackButtonLore()));
     }
 
     private void setupMainButtons() {
@@ -230,77 +246,19 @@ public class SellPortal {
     }
 
     public Inventory buildWhitelistGUI() {
-        return buildFilterGUI(
-                plugin.getConfigUtil().getWhitelistSize(),
-                plugin.getConfigUtil().getWhitelistTitle(),
-                whitelistInventory,
-                InventoryType.WHITELIST);
-    }
-
-    private Inventory buildFilterGUI(int size, String title,
-                                     Inventory filterSource, InventoryType type) {
-        Inventory gui = renderer.createInventory(
-                new SellPortalHolder(this, type), size, title);
-
-        int itemSlots = size - 9;
-        ItemStack filler = createItem(
-                plugin.getConfigUtil().getFillerMat(),
-                plugin.getConfigUtil().getFillerDisplayName());
-
-        for (int i = itemSlots; i < size; i++)
-            gui.setItem(i, filler.clone());
-
-        if (plugin.getConfigUtil().getBackSlot() < size)
-            gui.setItem(plugin.getConfigUtil().getBackSlot(),
-                    createItem(plugin.getConfigUtil().getBackButtonMat(),
-                            plugin.getConfigUtil().getBackButtonDisplayName(),
-                            plugin.getConfigUtil().getBackButtonLore()));
-
-        for (int i = 0; i < Math.min(itemSlots, filterSource.getSize() - 9); i++) {
-            ItemStack it = filterSource.getItem(i);
-
-            if (it != null && it.getType() != Material.AIR)
-                gui.setItem(i, it.clone());
-        }
-
-        return gui;
+        return whitelistInventory;
     }
 
     public Inventory buildBlacklistGUI() {
-        return buildFilterGUI(
-                plugin.getConfigUtil().getBlacklistSize(),
-                plugin.getConfigUtil().getBlacklistTitle(),
-                blacklistInventory,
-                InventoryType.BLACKLIST);
+        return blacklistInventory;
     }
 
     public void applyWhitelistChanges(Inventory view) {
-        applyFilterChanges(view, whitelistInventory);
-    }
-
-    private void applyFilterChanges(Inventory view, Inventory target) {
-        int limit = Math.min(view.getSize() - 9, target.getSize() - 9);
-
-        Material fillerMat = plugin.getConfigUtil().getFillerMat();
-        int backSlot = plugin.getConfigUtil().getBackSlot();
-
-        for (int i = 0; i < limit; i++) {
-            if (i == backSlot)
-                continue;
-
-            ItemStack item = view.getItem(i);
-            if (item != null && item.getType() != Material.AIR && item.getType() != fillerMat)
-                target.setItem(i, item);
-            else
-                target.setItem(i, null);
-        }
-        for (int i = limit; i < target.getSize() - 9; i++)
-            target.setItem(i, null);
         this.dirty = true;
     }
 
     public void applyBlacklistChanges(Inventory view) {
-        applyFilterChanges(view, blacklistInventory);
+        this.dirty = true;
     }
 
     public boolean isWhitelistSlot(int slot) {
