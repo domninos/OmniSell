@@ -14,6 +14,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -91,7 +92,7 @@ public class BoosterManager {
                         }
 
                         ActiveBooster ab = new ActiveBooster(dbId, islandUUID, def, expiryTime, cooldownEnd);
-                        activeBoosters.computeIfAbsent(islandUUID, k -> new ArrayList<>()).add(ab);
+                        activeBoosters.computeIfAbsent(islandUUID, k -> Collections.synchronizedList(new ArrayList<>())).add(ab);
 
                         counter++;
                     }
@@ -101,16 +102,21 @@ public class BoosterManager {
     }
 
     private void startCleanupTask() {
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             for (Map.Entry<String, List<ActiveBooster>> entry : activeBoosters.entrySet()) {
-                entry.getValue().removeIf(ab -> {
-                    if (ab.isExpired()) {
-                        plugin.getDatabaseManager().deleteActiveBooster(ab.dbId());
-                        return true;
-                    }
-
-                    return false;
-                });
+                List<ActiveBooster> list = entry.getValue();
+                List<Integer> expiredIds = new ArrayList<>();
+                synchronized (list) {
+                    list.removeIf(ab -> {
+                        if (ab.isExpired()) {
+                            expiredIds.add(ab.dbId());
+                            return true;
+                        }
+                        return false;
+                    });
+                }
+                for (int id : expiredIds)
+                    plugin.getDatabaseManager().deleteActiveBooster(id);
             }
         }, 600L, 600L);
     }
@@ -139,9 +145,11 @@ public class BoosterManager {
 
         double total = 0.0;
 
-        for (ActiveBooster ab : boosters) {
-            if (!ab.isExpired())
-                total += ab.definition().multiplier();
+        synchronized (boosters) {
+            for (ActiveBooster ab : boosters) {
+                if (!ab.isExpired())
+                    total += ab.definition().multiplier();
+            }
         }
 
         return Math.max(1.0, total);
@@ -169,10 +177,9 @@ public class BoosterManager {
                             .replace("%cost%", booster.formatCosts()));
                     return;
                 }
-            }
 
-            for (Map.Entry<String, Double> entry : booster.costs().entrySet())
                 plugin.getExcellentEconomyHook().removeMoney(player, entry.getKey(), entry.getValue());
+            }
         }
 
         long expiryTime = booster.durationSeconds() == -1 ? -1
@@ -183,7 +190,7 @@ public class BoosterManager {
         plugin.getDatabaseManager().saveActiveBooster(islandUUID, booster.id(), expiryTime, cooldownEnd);
 
         ActiveBooster ab = new ActiveBooster(-1, islandUUID, booster, expiryTime, cooldownEnd);
-        activeBoosters.computeIfAbsent(islandUUID, k -> new ArrayList<>()).add(ab);
+        activeBoosters.computeIfAbsent(islandUUID, k -> Collections.synchronizedList(new ArrayList<>())).add(ab);
 
         String durationStr = booster.durationSeconds() == -1
                 ? "permanent"
@@ -201,8 +208,10 @@ public class BoosterManager {
         if (boosters == null)
             return false;
 
-        return boosters.stream()
-                .anyMatch(ab -> ab.definition().id().equals(boosterId) && !ab.isExpired());
+        synchronized (boosters) {
+            return boosters.stream()
+                    .anyMatch(ab -> ab.definition().id().equals(boosterId) && !ab.isExpired());
+        }
     }
 
     private ActiveBooster findActiveByDefinition(String islandUUID, SellBooster booster) {
@@ -211,9 +220,11 @@ public class BoosterManager {
         if (boosters == null)
             return null;
 
-        for (ActiveBooster ab : boosters) {
-            if (ab.definition().id().equals(booster.id()))
-                return ab;
+        synchronized (boosters) {
+            for (ActiveBooster ab : boosters) {
+                if (ab.definition().id().equals(booster.id()))
+                    return ab;
+            }
         }
 
         return null;
@@ -245,6 +256,7 @@ public class BoosterManager {
     }
 
     public void shutdown() {
+        plugin.getDatabaseManager().flushBoosterOps();
         activeBoosters.clear();
         boosterDefs.clear();
     }

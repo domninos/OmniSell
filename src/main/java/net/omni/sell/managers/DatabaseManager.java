@@ -14,15 +14,18 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 public class DatabaseManager {
 
+    private static final int MAX_OPS_PER_TICK = 20;
     private final OmniSell plugin;
+    private final Queue<BoosterOp> pendingOps = new ConcurrentLinkedQueue<>();
     private HikariDataSource dataSource;
-
     public DatabaseManager(OmniSell plugin) {
         this.plugin = plugin;
     }
@@ -65,8 +68,15 @@ public class DatabaseManager {
         }
 
         initActiveBoostersTable();
+        startBoosterQueueProcessor();
 
         plugin.sendConsole("<green>Successfully initialized database.</green>");
+    }
+
+    public Connection getConnection() throws SQLException {
+        if (dataSource == null)
+            throw new SQLException("DataSource not initialized");
+        return dataSource.getConnection();
     }
 
     private void initActiveBoostersTable() {
@@ -85,23 +95,55 @@ public class DatabaseManager {
         }
     }
 
-    public Connection getConnection() throws SQLException {
-        if (dataSource == null)
-            throw new SQLException("DataSource not initialized");
-        return dataSource.getConnection();
+    private void startBoosterQueueProcessor() {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+            try (Connection conn = getConnection()) {
+                conn.setAutoCommit(false);
+
+                int processed = 0;
+
+                while (processed < MAX_OPS_PER_TICK) {
+                    BoosterOp op = pendingOps.poll();
+
+                    if (op == null)
+                        break;
+
+                    executeBoosterOp(conn, op);
+                    processed++;
+                }
+
+                conn.commit();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to process booster queue batch", e);
+            }
+        }, 600L, 600L);
     }
 
-    private String getLocationKey(Location location) {
-        if (location == null) return "";
-        return location.getWorld().getName() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
+    private void executeBoosterOp(Connection conn, BoosterOp op) throws SQLException {
+        switch (op) {
+            case BoosterOp.Save s -> {
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "INSERT INTO active_boosters (island_uuid, booster_id, expiry_time, cooldown_end) VALUES (?, ?, ?, ?)")) {
+                    stmt.setString(1, s.islandUUID());
+                    stmt.setString(2, s.boosterId());
+                    stmt.setLong(3, s.expiryTime());
+                    stmt.setLong(4, s.cooldownEnd());
+                    stmt.executeUpdate();
+                }
+            }
+
+            case BoosterOp.Delete d -> {
+                try (PreparedStatement stmt = conn.prepareStatement(
+                        "DELETE FROM active_boosters WHERE id = ?")) {
+                    stmt.setInt(1, d.dbId());
+                    stmt.executeUpdate();
+                }
+            }
+        }
     }
 
     public CompletableFuture<List<ItemStack>> fetchWhitelist(Location location) {
         return fetchColumn(location, "whitelist_base64");
-    }
-
-    public CompletableFuture<List<ItemStack>> fetchBlacklist(Location location) {
-        return fetchColumn(location, "blacklist_base64");
     }
 
     private CompletableFuture<List<ItemStack>> fetchColumn(Location location, String column) {
@@ -138,6 +180,15 @@ public class DatabaseManager {
         return future;
     }
 
+    private String getLocationKey(Location location) {
+        if (location == null) return "";
+        return location.getWorld().getName() + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
+    }
+
+    public CompletableFuture<List<ItemStack>> fetchBlacklist(Location location) {
+        return fetchColumn(location, "blacklist_base64");
+    }
+
     public void saveFull(Location location, String ownerUUID, int size,
                          List<String> frameKeys, String islandUUID,
                          List<ItemStack> whitelist, List<ItemStack> blacklist) {
@@ -149,18 +200,6 @@ public class DatabaseManager {
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
                 executeSave(locationKey, ownerUUID, size, frameKeys, islandUUID, base64Whitelist, base64Blacklist));
-    }
-
-    public void saveFullSync(Location location, String ownerUUID, int size,
-                             List<String> frameKeys, String islandUUID,
-                             List<ItemStack> whitelist, List<ItemStack> blacklist) {
-        String locationKey = getLocationKey(location);
-        if (locationKey.isBlank()) return;
-
-        String base64Whitelist = ItemSerializationUtil.toBase64(whitelist);
-        String base64Blacklist = ItemSerializationUtil.toBase64(blacklist);
-
-        executeSave(locationKey, ownerUUID, size, frameKeys, islandUUID, base64Whitelist, base64Blacklist);
     }
 
     private void executeSave(String locationKey, String ownerUUID, int size,
@@ -185,6 +224,18 @@ public class DatabaseManager {
         } catch (SQLException e) {
             plugin.getLogger().log(Level.SEVERE, "Error while saving to database!", e);
         }
+    }
+
+    public void saveFullSync(Location location, String ownerUUID, int size,
+                             List<String> frameKeys, String islandUUID,
+                             List<ItemStack> whitelist, List<ItemStack> blacklist) {
+        String locationKey = getLocationKey(location);
+        if (locationKey.isBlank()) return;
+
+        String base64Whitelist = ItemSerializationUtil.toBase64(whitelist);
+        String base64Blacklist = ItemSerializationUtil.toBase64(blacklist);
+
+        executeSave(locationKey, ownerUUID, size, frameKeys, islandUUID, base64Whitelist, base64Blacklist);
     }
 
     public SellPortal loadPortalSync(Location location) {
@@ -333,6 +384,18 @@ public class DatabaseManager {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> executeDelete(locationKey));
     }
 
+    private void executeDelete(String locationKey) {
+        String query = "DELETE FROM sell_portals WHERE location_key = ?";
+
+        try (Connection connection = getConnection();
+             PreparedStatement stmt = connection.prepareStatement(query)) {
+            stmt.setString(1, locationKey);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Error while deleting from database!", e);
+        }
+    }
+
     public void deleteLocationSync(Location location) {
         String locationKey = getLocationKey(location);
         if (locationKey.isBlank()) return;
@@ -361,33 +424,8 @@ public class DatabaseManager {
         return null;
     }
 
-    private void executeDelete(String locationKey) {
-        String query = "DELETE FROM sell_portals WHERE location_key = ?";
-
-        try (Connection connection = getConnection();
-             PreparedStatement stmt = connection.prepareStatement(query)) {
-            stmt.setString(1, locationKey);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "Error while deleting from database!", e);
-        }
-    }
-
     public void saveActiveBooster(String islandUUID, String boosterId, long expiryTime, long cooldownEnd) {
-        String query = "INSERT INTO active_boosters (island_uuid, booster_id, expiry_time, cooldown_end) VALUES (?, ?, ?, ?)";
-
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement stmt = connection.prepareStatement(query)) {
-                stmt.setString(1, islandUUID);
-                stmt.setString(2, boosterId);
-                stmt.setLong(3, expiryTime);
-                stmt.setLong(4, cooldownEnd);
-                stmt.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Error while saving active booster!", e);
-            }
-        });
+        pendingOps.add(new BoosterOp.Save(islandUUID, boosterId, expiryTime, cooldownEnd));
     }
 
     public CompletableFuture<List<Object[]>> loadActiveBoostersAsync() {
@@ -423,21 +461,46 @@ public class DatabaseManager {
     }
 
     public void deleteActiveBooster(int dbId) {
-        String query = "DELETE FROM active_boosters WHERE id = ?";
-
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement stmt = connection.prepareStatement(query)) {
-                stmt.setInt(1, dbId);
-                stmt.executeUpdate();
-            } catch (SQLException e) {
-                plugin.getLogger().log(Level.SEVERE, "Error while deleting active booster!", e);
-            }
-        });
+        pendingOps.add(new BoosterOp.Delete(dbId));
     }
 
     public void closePool() {
+        flushBoosterOps();
+
         if (dataSource != null && !dataSource.isClosed())
             dataSource.close();
+    }
+
+    public void flushBoosterOps() {
+        while (!pendingOps.isEmpty()) {
+            try (Connection conn = getConnection()) {
+                conn.setAutoCommit(false);
+
+                int processed = 0;
+
+                while (processed < MAX_OPS_PER_TICK) {
+                    BoosterOp op = pendingOps.poll();
+
+                    if (op == null)
+                        break;
+
+                    executeBoosterOp(conn, op);
+                    processed++;
+                }
+
+                conn.commit();
+            } catch (SQLException e) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to drain booster ops", e);
+                break;
+            }
+        }
+    }
+
+    private sealed interface BoosterOp {
+        record Save(String islandUUID, String boosterId, long expiryTime, long cooldownEnd) implements BoosterOp {
+        }
+
+        record Delete(int dbId) implements BoosterOp {
+        }
     }
 }
