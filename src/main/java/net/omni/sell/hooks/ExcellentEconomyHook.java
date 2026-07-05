@@ -17,7 +17,6 @@ public class ExcellentEconomyHook {
     private boolean enabled = false;
     private ExcellentEconomyAPI api;
     private OperationContext context;
-    private String currencyId;
 
     public ExcellentEconomyHook(OmniSell plugin) {
         this.plugin = plugin;
@@ -30,34 +29,19 @@ public class ExcellentEconomyHook {
             this.api = provider.getProvider();
             this.context = OperationContext.custom("OmniSell")
                     .silentFor(NotificationTarget.USER, NotificationTarget.EXECUTOR, NotificationTarget.CONSOLE_LOGGER);
-            this.currencyId = plugin.getConfig().getString("economy.currency", "coins");
             this.enabled = true;
 
-            plugin.sendConsole("<green>Successfully hooked into ExcellentEconomy: Detected "
-                    + currencyId + "</green>");
+            plugin.sendConsole("<green>Successfully hooked into ExcellentEconomy.</green>");
         }
-    }
-
-    public void addMoney(Player player, double amount) {
-        if (canPerform())
-            api.deposit(player, currencyId, amount, context);
     }
 
     public boolean canPerform() {
         return isEnabled() && api.canPerformOperations();
     }
 
-    public void removeMoney(Player player, double amount) {
-        removeMoney(player, currencyId, amount);
-    }
-
     public void removeMoney(Player player, String currencyId, double amount) {
         if (canPerform())
             api.withdraw(player, currencyId, amount, context);
-    }
-
-    public double getBalance(Player player, double amount) {
-        return getBalance(player, currencyId);
     }
 
     public double getBalance(Player player, String currencyId) {
