@@ -50,6 +50,7 @@ public class SellCommand implements CommandExecutor {
                 plugin.getMessagesManager().loadMessages();
                 plugin.getPricesManager().loadPrices();
                 plugin.getSellItemHandler().load();
+                plugin.getBoosterManager().reloadDefinitions();
 
 
                 plugin.sendMessage(sender, Messages.RELOADED.toString());

@@ -67,6 +67,7 @@ public class BoosterManager {
 
             boosterDefs.add(new SellBooster(id, mat, rawDisplayName, loreStr, multiplier, duration, cooldown, slot, costs));
         }
+
         plugin.sendConsole("<green>Loaded " + boosterDefs.size() + " sell booster definitions.</green>");
     }
 
@@ -297,6 +298,68 @@ public class BoosterManager {
             }
             gui.setItem(booster.guiSlot(), item);
         }
+    }
+
+    public void reloadDefinitions() {
+        loadDefinitions();
+
+        long now = System.currentTimeMillis();
+
+        for (Map.Entry<String, List<ActiveBooster>> entry : activeBoosters.entrySet()) {
+            String islandUUID = entry.getKey();
+            List<ActiveBooster> list = entry.getValue();
+            synchronized (list) {
+                List<ActiveBooster> updated = new ArrayList<>();
+                for (ActiveBooster ab : list) {
+                    SellBooster newDef = getDefinition(ab.definition().id());
+                    if (newDef == null) {
+                        updated.add(ab);
+                        continue;
+                    }
+
+                    long activationTime = (ab.definition().durationSeconds() != -1 && ab.expiryTime() != -1)
+                            ? ab.expiryTime() - (ab.definition().durationSeconds() * 1000)
+                            : -1;
+
+                    long newExpiry;
+                    if (newDef.durationSeconds() == -1) {
+                        newExpiry = -1;
+                    } else if (activationTime == -1) {
+                        newExpiry = now + (newDef.durationSeconds() * 1000);
+                    } else {
+                        newExpiry = activationTime + (newDef.durationSeconds() * 1000);
+                        if (newExpiry <= now) {
+                            plugin.getDatabaseManager().deleteActiveBooster(ab.dbId());
+                            continue;
+                        }
+                    }
+
+                    long cooldownStart = (ab.definition().cooldownSeconds() != -1 && ab.cooldownEnd() != -1)
+                            ? ab.cooldownEnd() - (ab.definition().cooldownSeconds() * 1000)
+                            : -1;
+
+                    long newCooldownEnd;
+                    if (newDef.cooldownSeconds() == -1) {
+                        newCooldownEnd = -1;
+                    } else if (cooldownStart == -1) {
+                        newCooldownEnd = now + (newDef.cooldownSeconds() * 1000);
+                    } else {
+                        newCooldownEnd = cooldownStart + (newDef.cooldownSeconds() * 1000);
+                        if (newCooldownEnd <= now)
+                            newCooldownEnd = -1;
+                    }
+
+                    plugin.getDatabaseManager().deleteActiveBooster(ab.dbId());
+                    plugin.getDatabaseManager().saveActiveBooster(islandUUID, newDef.id(), newExpiry, newCooldownEnd);
+
+                    updated.add(new ActiveBooster(ab.dbId(), islandUUID, newDef, newExpiry, newCooldownEnd));
+                }
+                list.clear();
+                list.addAll(updated);
+            }
+        }
+
+        plugin.sendConsole("<green>Reloaded " + boosterDefs.size() + " booster definitions and updated active boosters.</green>");
     }
 
     public void shutdown() {

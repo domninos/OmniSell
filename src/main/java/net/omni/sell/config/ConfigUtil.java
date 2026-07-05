@@ -81,9 +81,10 @@ public class ConfigUtil {
     }
 
     public void flush() {
-        if (sellBoosterDefs != null && !sellBoosterDefs.isEmpty()) {
+        if (sellBoosterDefs != null) {
             sellBoosterDefs.forEach(Map::clear);
             sellBoosterDefs.clear();
+            sellBoosterDefs = null;
         }
 
         portalItemLore.clear();
