@@ -3,22 +3,30 @@ package net.omni.sell.hooks;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridge;
 import com.bgsoftware.superiorskyblock.api.data.DatabaseBridgeMode;
+import com.bgsoftware.superiorskyblock.api.data.DatabaseFilter;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.island.bank.IslandBank;
+import com.bgsoftware.superiorskyblock.api.objects.Pair;
 import net.omni.sell.OmniSell;
 import net.omni.sell.handlers.SellPortal;
 import net.omni.sell.messages.Messages;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 
 import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SuperiorSkyblock2Hook {
 
     private final OmniSell plugin;
 
     private boolean enabled = false;
+    private final Set<UUID> dirtyIslands = ConcurrentHashMap.newKeySet();
 
     public SuperiorSkyblock2Hook(OmniSell plugin) {
         this.plugin = plugin;
@@ -26,6 +34,8 @@ public class SuperiorSkyblock2Hook {
 
     public void init() {
         this.enabled = true;
+
+        startBatchProcessor();
 
         plugin.sendConsole("<green>Successfully hooked into SuperiorSkyblock2</green>");
     }
@@ -71,21 +81,53 @@ public class SuperiorSkyblock2Hook {
         if (!islandBank.canDepositMoney(bigDecimal))
             return false;
 
-
-//        islandBank.depositAdminMoney(Bukkit.getConsoleSender(), bigDecimal); // this makes a ton of transaction logs
-
-        DatabaseBridge bridge = island.getDatabaseBridge();
-
-        // doesn't work
-        bridge.setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
         islandBank.setBalance(islandBank.getBalance().add(bigDecimal));
+        dirtyIslands.add(island.getUniqueId());
 
-        // run this on async if using this, otherwise, get IslandsDatabaseBridge.saveBankBalance(island) somehow
-//            bridge.updateObject(
-//                    "islands_banks",
-//                    DatabaseFilter.fromFilter("island", island.getUniqueId().toString()),
-//                    new Pair<>("balance", islandBank.getBalance())
-//            );
         return true;
+    }
+
+    private void startBatchProcessor() {
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (dirtyIslands.isEmpty())
+                return;
+
+            Set<UUID> batch = new HashSet<>(dirtyIslands);
+            dirtyIslands.clear();
+
+            for (UUID islandUUID : batch) {
+                Island island = SuperiorSkyblockAPI.getIslandByUUID(islandUUID);
+
+                if (island == null)
+                    continue;
+
+                DatabaseBridge bridge = island.getDatabaseBridge();
+                bridge.updateObject(
+                        "islands_banks",
+                        DatabaseFilter.fromFilter("island", island.getUniqueId().toString()),
+                        new Pair<>("balance", island.getIslandBank().getBalance())
+                );
+            }
+        }, 600L, 600L);
+    }
+
+    public void shutdown() {
+        if (!dirtyIslands.isEmpty()) {
+            for (UUID islandUUID : dirtyIslands) {
+                Island island = SuperiorSkyblockAPI.getIslandByUUID(islandUUID);
+
+                if (island == null)
+                    continue;
+
+                DatabaseBridge bridge = island.getDatabaseBridge();
+                bridge.setDatabaseBridgeMode(DatabaseBridgeMode.SAVE_DATA);
+                bridge.updateObject(
+                        "islands_banks",
+                        DatabaseFilter.fromFilter("island", island.getUniqueId().toString()),
+                        new Pair<>("balance", island.getIslandBank().getBalance())
+                );
+            }
+            dirtyIslands.clear();
+        }
     }
 }

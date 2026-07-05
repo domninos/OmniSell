@@ -90,6 +90,9 @@ public final class OmniSell extends JavaPlugin {
         portalManager.flush();
         sellItemHandler.flush();
 
+        if (superiorSkyblock2Hook != null)
+            superiorSkyblock2Hook.shutdown();
+
         databaseManager.closePool();
 
 
