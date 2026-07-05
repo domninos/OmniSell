@@ -54,27 +54,9 @@ gui:
     display_name: "<red>Blacklist</red>"
 
 sell_boosters:
-  double_sell:
+  one_half:
     slot: 10
     material: GOLDEN_APPLE
-    display_name: "<gold>2x Sell Booster</gold>"
-    lore:
-      - "<gray>Multiplies sell prices by</gray> <gold>%multiplier%x</gold>"
-      - ""
-      - "<gray>Duration:</gray> <gold>%duration%</gold>"
-      - ""
-      - "<gray>Cooldown:</gray> <gold>%cooldown%</gold>"
-      - ""
-      - "<gray>Cost:</gray> <gold>%cost%</gold>"
-    multiplier: 2.0
-    duration: 1800
-    cooldown: -1
-    costs:
-      coins: 100.0
-
-  one_half:
-    slot: 12
-    material: ENCHANTED_GOLDEN_APPLE
     display_name: "<gradient:#FFAA00:#FF5500>1.5x Sell Booster</gradient>"
     lore:
       - "<gray>Multiplies sell prices by</gray> <gold>%multiplier%x</gold>"
@@ -83,11 +65,30 @@ sell_boosters:
       - "<gray>Cooldown:</gray> <gold>%cooldown%</gold>"
       - ""
       - "<gray>Cost:</gray> <gold>%cost%</gold>"
+      - ""
     multiplier: 1.5
     duration: 600
     cooldown: 300
     costs:
       coins: 25.0
+
+  double_sell:
+    slot: 12
+    material: ENCHANTED_GOLDEN_APPLE
+    display_name: "<gold>2x Sell Booster</gold>"
+    lore:
+      - "<gray>Multiplies sell prices by</gray> <gold>%multiplier%x</gold>"
+      - ""
+      - "<gray>Duration:</gray> <gold>%duration%</gold>"
+      - "<gray>Cooldown:</gray> <gold>%cooldown%</gold>"
+      - ""
+      - "<gray>Cost:</gray> <gold>%cost%</gold>"
+      - ""
+    multiplier: 2.0
+    duration: 1800
+    cooldown: -1
+    costs:
+      coins: 100.0
 
   triple_sell:
     slot: 14
@@ -100,6 +101,7 @@ sell_boosters:
       - "<gray>Cooldown:</gray> <gold>%cooldown%</gold>"
       - ""
       - "<gray>Cost:</gray> <gold>%cost%</gold>"
+      - ""
     multiplier: 3.0
     duration: 900
     cooldown: 1800
@@ -118,6 +120,7 @@ sell_boosters:
       - "<gray>Cooldown:</gray> <gold>%cooldown%</gold>"
       - ""
       - "<gray>Cost:</gray> <gold>%cost%</gold>"
+      - ""
     multiplier: 5.0
     duration: 60
     cooldown: 600
