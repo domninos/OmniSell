@@ -17,9 +17,15 @@ gui:
   whitelist:
     size: 27
     title: "<gradient:#00AAFF:#55FFFF>Whitelist</gradient>"
+    sound: ENTITY_EXPERIENCE_ORB_PICKUP
+    sound_volume: 0.5
+    sound_pitch: 1.2
   blacklist:
     size: 27
     title: "<gradient:#00AAFF:#55FFFF>Blacklist</gradient>"
+    sound: ENTITY_EXPERIENCE_ORB_PICKUP
+    sound_volume: 0.5
+    sound_pitch: 0.8
   boosters:
     size: 27
     title: "<gradient:#00AAFF:#55FFFF>Sell Boosters</gradient>"

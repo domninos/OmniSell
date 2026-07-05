@@ -61,6 +61,14 @@ public class ConfigUtil {
     private String blacklistDisplayName;
     private List<String> blacklistLore;
 
+    private String whitelistSound;
+    private float whitelistSoundVolume;
+    private float whitelistSoundPitch;
+
+    private String blacklistSound;
+    private float blacklistSoundVolume;
+    private float blacklistSoundPitch;
+
     public ConfigUtil(OmniSell plugin) {
         this.plugin = plugin;
     }
@@ -106,6 +114,13 @@ public class ConfigUtil {
         this.blacklistSize = getAndDefaultInt("gui.blacklist.size", 27, savedDefaults::getAndAdd);
         this.blacklistTitle = getAndDefaultString("gui.blacklist.title", "<gradient:#00AAFF:#55FFFF>Blacklist</gradient>", savedDefaults::getAndAdd);
 
+        this.whitelistSound = getAndDefaultString("gui.whitelist.sound", "ENTITY_EXPERIENCE_ORB_PICKUP", savedDefaults::getAndAdd);
+        this.whitelistSoundVolume = (float) getAndDefaultDouble("gui.whitelist.sound_volume", 0.5, savedDefaults::getAndAdd);
+        this.whitelistSoundPitch = (float) getAndDefaultDouble("gui.whitelist.sound_pitch", 1.2, savedDefaults::getAndAdd);
+
+        this.blacklistSound = getAndDefaultString("gui.blacklist.sound", "ENTITY_EXPERIENCE_ORB_PICKUP", savedDefaults::getAndAdd);
+        this.blacklistSoundVolume = (float) getAndDefaultDouble("gui.blacklist.sound_volume", 0.5, savedDefaults::getAndAdd);
+        this.blacklistSoundPitch = (float) getAndDefaultDouble("gui.blacklist.sound_pitch", 0.8, savedDefaults::getAndAdd);
 
         this.pickupSlot = getAndDefaultInt("gui.pickup_button.slot", 16, savedDefaults::getAndAdd);
         this.pickupMaterial = Material.matchMaterial(getAndDefaultString("gui.pickup_button.material", "END_PORTAL_FRAME", savedDefaults::getAndAdd));
@@ -166,6 +181,16 @@ public class ConfigUtil {
         }
 
         return temp;
+    }
+
+    private double getAndDefaultDouble(String path, double defaultVal, IntConsumer consumer) {
+        if (!plugin.getConfig().contains(path)) {
+            plugin.getConfig().set(path, defaultVal);
+            consumer.accept(1);
+            return defaultVal;
+        }
+
+        return plugin.getConfig().getDouble(path);
     }
 
     public Material getPortalItemMaterial() {
@@ -342,5 +367,29 @@ public class ConfigUtil {
 
     public List<String> getBlacklistLore() {
         return this.blacklistLore;
+    }
+
+    public String getWhitelistSound() {
+        return whitelistSound;
+    }
+
+    public float getWhitelistSoundVolume() {
+        return whitelistSoundVolume;
+    }
+
+    public float getWhitelistSoundPitch() {
+        return whitelistSoundPitch;
+    }
+
+    public String getBlacklistSound() {
+        return blacklistSound;
+    }
+
+    public float getBlacklistSoundVolume() {
+        return blacklistSoundVolume;
+    }
+
+    public float getBlacklistSoundPitch() {
+        return blacklistSoundPitch;
     }
 }

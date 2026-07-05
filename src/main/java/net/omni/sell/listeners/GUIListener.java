@@ -5,6 +5,7 @@ import net.omni.sell.handlers.SellBooster;
 import net.omni.sell.handlers.SellPortal;
 import net.omni.sell.handlers.SellPortalHolder;
 import net.omni.sell.util.InventoryType;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -145,6 +146,7 @@ public class GUIListener implements Listener {
                 ItemStack one = moved.clone();
                 one.setAmount(1);
                 top.setItem(emptySlot, one);
+                playFilterSound((Player) event.getWhoClicked(), isWhitelist);
                 return;
             }
 
@@ -167,6 +169,7 @@ public class GUIListener implements Listener {
             ItemStack one = cursor.clone();
             one.setAmount(1);
             event.setCurrentItem(one);
+            playFilterSound((Player) event.getWhoClicked(), isWhitelist);
             portal.markDirty();
             return;
         }
@@ -174,6 +177,7 @@ public class GUIListener implements Listener {
         ItemStack current = event.getCurrentItem();
         if (current != null && !current.getType().isAir()) {
             event.setCurrentItem(null);
+            playFilterSound((Player) event.getWhoClicked(), isWhitelist);
             portal.markDirty();
         }
     }
@@ -201,6 +205,23 @@ public class GUIListener implements Listener {
 
         plugin.getBoosterManager().activateBooster(player, islandUUID, booster);
         player.openInventory(portal.buildBoostersGUI());
+    }
+
+    private void playFilterSound(Player player, boolean isWhitelist) {
+        String soundName = isWhitelist
+                ? plugin.getConfigUtil().getWhitelistSound()
+                : plugin.getConfigUtil().getBlacklistSound();
+        float volume = isWhitelist
+                ? plugin.getConfigUtil().getWhitelistSoundVolume()
+                : plugin.getConfigUtil().getBlacklistSoundVolume();
+        float pitch = isWhitelist
+                ? plugin.getConfigUtil().getWhitelistSoundPitch()
+                : plugin.getConfigUtil().getBlacklistSoundPitch();
+
+        try {
+            player.playSound(player.getLocation(), Sound.valueOf(soundName), volume, pitch);
+        } catch (IllegalArgumentException ignored) {
+        }
     }
 
     private SellPortal findPortalByInventoryMatch(Inventory top) {
