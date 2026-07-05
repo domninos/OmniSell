@@ -1,8 +1,5 @@
 package net.omni.sell.listeners;
 
-import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
-import com.bgsoftware.superiorskyblock.api.island.Island;
-import com.bgsoftware.superiorskyblock.api.island.bank.IslandBank;
 import net.omni.sell.OmniSell;
 import net.omni.sell.handlers.SellPortal;
 import net.omni.sell.messages.Messages;
@@ -26,7 +23,6 @@ import org.bukkit.event.player.PlayerPortalEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -61,21 +57,12 @@ public class PortalListener implements Listener {
             return;
         }
 
-
         String islandUUID = null;
         if (plugin.getSuperiorSkyblock2Hook().isEnabled()) {
-            Island island = SuperiorSkyblockAPI.getIslandAt(anchor);
-            if (island == null) {
-                event.setCancelled(true);
-                plugin.sendMessage(player, "<red>You must place the portal on your island.</red>");
+            islandUUID = plugin.getSuperiorSkyblock2Hook().checkIsland(anchor, event, player);
+
+            if (islandUUID == null || islandUUID.isEmpty())
                 return;
-            }
-            islandUUID = island.getUniqueId().toString();
-            if (plugin.getPortalManager().hasPortalForIsland(islandUUID)) {
-                event.setCancelled(true);
-                plugin.sendMessage(player, Messages.PORTAL_ALREADY_EXISTS.toString());
-                return;
-            }
         }
 
         if (!hasSpace(anchor, portalSize)) {
@@ -297,23 +284,8 @@ public class PortalListener implements Listener {
         price *= multiplier;
 
         if (plugin.getSuperiorSkyblock2Hook().isEnabled()) {
-            Island island = SuperiorSkyblockAPI.getIslandAt(portal.getLocation());
-
-            if (island == null)
+            if (!plugin.getSuperiorSkyblock2Hook().depositMoney(portal, price))
                 return;
-
-            IslandBank islandBank = island.getIslandBank();
-            BigDecimal bigDecimal = BigDecimal.valueOf(price);
-
-            if (!islandBank.canDepositMoney(bigDecimal))
-                return;
-
-//            islandBank.depositAdminMoney(Bukkit.getConsoleSender(), bigDecimal); // this makes a ton of transaction logs
-
-            BigDecimal currentBal = islandBank.getBalance();
-
-            islandBank.setBalance(currentBal.add(bigDecimal));
-            island.savePersistentDataContainer();
         }
 
         item.remove();

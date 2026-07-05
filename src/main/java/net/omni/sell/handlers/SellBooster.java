@@ -48,7 +48,7 @@ public record SellBooster(
 
             item.setItemMeta(meta);
 
-            processedLore.clear();
+            processedLore.clear(); // garbage
         }
         return item;
     }
@@ -56,13 +56,16 @@ public record SellBooster(
     public String formatCosts() {
         if (costs == null || costs.isEmpty())
             return "Free";
+
         List<String> parts = new ArrayList<>();
+
         for (Map.Entry<String, Double> entry : costs.entrySet()) {
             String amount = entry.getValue() == entry.getValue().longValue()
                     ? String.valueOf(entry.getValue().longValue())
                     : String.valueOf(entry.getValue());
             parts.add(amount + " " + entry.getKey());
         }
+
         return String.join(", ", parts);
     }
 

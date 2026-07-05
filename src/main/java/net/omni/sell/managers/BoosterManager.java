@@ -66,6 +66,7 @@ public class BoosterManager {
     }
 
     private void loadActiveFromDB() {
+        // TODO instead of Object[] use SellBooster
         plugin.getDatabaseManager().loadActiveBoostersAsync().thenAccept(rows ->
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     int counter = 0;

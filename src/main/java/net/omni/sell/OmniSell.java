@@ -35,23 +35,27 @@ public final class OmniSell extends JavaPlugin {
         max island size will be 250x250
 
         TODO
-            1 portal per island it should be given as an item configurable
-            .
-            When the item is placed it place down 3x3 end portal with frames
-             if the OWNER right clicks any of the frames it will give them the option to pick it.
-            .
-            Only 1 portal should be allowed to be placed per island
             .
             base: 3x3 and but have it configurable so if we wanna make it bigger we can
-            .
-            The portal upgrades:
-             sell boosters
             .
             softdepend SuperiorSkyblock2
                 if hooked, deposit to island balance
                 else, deposit to owner balance
             .
-            make /sp list only show portal owned
+            make /sp list only show portal owned.
+            .
+            test booster timer
+            when server shuts down, get current time and add the remaining time to database
+            .
+            cache inventory
+            .
+            test filters
+            fix dropping items causes item to disappear
+            fix filter items not properly duplicating (if holding a stack)
+            .
+            test skyblock island bank if it persists (IT DOES NOT)
+            .
+            remove economy on config
      */
 
     private ChatRenderer chatRenderer;
