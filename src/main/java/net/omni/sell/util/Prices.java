@@ -1,5 +1,10 @@
 package net.omni.sell.util;
 
+import org.bukkit.Material;
+
+import java.util.EnumMap;
+import java.util.Map;
+
 public enum Prices {
     DIRT("DIRT", 1.0),
     COBBLESTONE("COBBLESTONE", 3.0),
@@ -16,6 +21,17 @@ public enum Prices {
     OBSIDIAN("OBSIDIAN", 650.0),
     ANCIENT_DEBRIS("ANCIENT_DEBRIS", 1000.0),
     NETHERITE_INGOT("NETHERITE_INGOT", 1600.0);
+
+    private static final Map<Material, Prices> BY_MATERIAL = new EnumMap<>(Material.class);
+
+    static {
+        for (Prices p : values())
+            BY_MATERIAL.put(Material.valueOf(p.name()), p);
+    }
+
+    public static Prices getByMaterial(Material material) {
+        return BY_MATERIAL.get(material);
+    }
 
     private final String path;
     private final double defaultPrice;

@@ -19,6 +19,7 @@ public class PortalManager {
     private final NamespacedKey sellPortalKey;
     private final Map<Location, SellPortal> portalCache = new LinkedHashMap<>();
     private final Map<String, Location> frameToAnchor = new ConcurrentHashMap<>();
+    private final Map<Long, List<SellPortal>> chunkPortals = new ConcurrentHashMap<>();
 
     public PortalManager(OmniSell plugin) {
         this.plugin = plugin;
@@ -27,6 +28,14 @@ public class PortalManager {
 
     public NamespacedKey getSellPortalKey() {
         return sellPortalKey;
+    }
+
+    public List<SellPortal> getPortalsInChunk(int chunkX, int chunkZ) {
+        return chunkPortals.get(chunkKey(chunkX, chunkZ));
+    }
+
+    private static long chunkKey(int x, int z) {
+        return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
     public boolean isGloballyEnabled() {
@@ -42,6 +51,30 @@ public class PortalManager {
         portalCache.put(location, portal);
         for (String key : portal.getFrameKeys())
             frameToAnchor.put(key, location);
+        addToChunkIndex(portal);
+    }
+
+    private void addToChunkIndex(SellPortal portal) {
+        Location anchor = portal.getLocation();
+        int ax = anchor.getBlockX();
+        int az = anchor.getBlockZ();
+        int size = portal.getSize();
+
+        int minX = ax + 1;
+        int maxX = ax + size;
+        int minZ = az - size;
+        int maxZ = az - 1;
+
+        int minChunkX = minX >> 4;
+        int maxChunkX = maxX >> 4;
+        int minChunkZ = minZ >> 4;
+        int maxChunkZ = maxZ >> 4;
+
+        for (int cx = minChunkX; cx <= maxChunkX; cx++) {
+            for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
+                chunkPortals.computeIfAbsent(chunkKey(cx, cz), k -> new ArrayList<>()).add(portal);
+            }
+        }
     }
 
     public SellPortal getPortal(Location location) {
@@ -88,10 +121,41 @@ public class PortalManager {
                 if (portal.isDirty())
                     portal.save();
 
+                removeFromChunkIndex(portal);
+
                 for (String key : portal.getFrameKeys())
                     frameToAnchor.remove(key);
 
                 it.remove();
+            }
+        }
+    }
+
+    private void removeFromChunkIndex(SellPortal portal) {
+        Location anchor = portal.getLocation();
+        int ax = anchor.getBlockX();
+        int az = anchor.getBlockZ();
+        int size = portal.getSize();
+
+        int minX = ax + 1;
+        int maxX = ax + size;
+        int minZ = az - size;
+        int maxZ = az - 1;
+
+        int minChunkX = minX >> 4;
+        int maxChunkX = maxX >> 4;
+        int minChunkZ = minZ >> 4;
+        int maxChunkZ = maxZ >> 4;
+
+        for (int cx = minChunkX; cx <= maxChunkX; cx++) {
+            for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
+                long key = chunkKey(cx, cz);
+                List<SellPortal> list = chunkPortals.get(key);
+                if (list != null) {
+                    list.remove(portal);
+                    if (list.isEmpty())
+                        chunkPortals.remove(key);
+                }
             }
         }
     }
@@ -121,6 +185,7 @@ public class PortalManager {
         SellPortal portal = portalCache.remove(location);
 
         if (portal != null) {
+            removeFromChunkIndex(portal);
             for (String key : portal.getFrameKeys())
                 frameToAnchor.remove(key);
 
@@ -134,5 +199,10 @@ public class PortalManager {
 
         portalCache.clear();
         frameToAnchor.clear();
+
+        if (!chunkPortals.isEmpty())
+            chunkPortals.forEach((key, list) -> list.clear());
+
+        chunkPortals.clear();
     }
 }

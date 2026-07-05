@@ -205,7 +205,8 @@ public class PortalListener implements Listener {
         for (int i = 0; i < frameSide; i++) {
             for (int j = 0; j < frameSide; j++) {
                 Block b = world.getBlockAt(bx + i, by, bz - j);
-                if (b.getType() == Material.END_PORTAL_FRAME || b.getType() == Material.END_PORTAL)
+                if (b.getType() == Material.END_PORTAL_FRAME
+                        || b.getType() == Material.END_PORTAL)
                     b.setType(Material.AIR, false);
             }
         }
@@ -251,7 +252,6 @@ public class PortalListener implements Listener {
         if (!(entity instanceof Item item))
             return;
 
-
         if (!plugin.getPortalManager().isGloballyEnabled())
             return;
 
@@ -267,16 +267,11 @@ public class PortalListener implements Listener {
         if (!portal.shouldCollect(itemStack))
             return;
 
-        String materialName = itemStack.getType().name();
-        double price;
-
-        try {
-            Prices prices = Prices.valueOf(materialName);
-            price = prices.getPrice() * itemStack.getAmount();
-        } catch (IllegalArgumentException e) {
+        Prices prices = Prices.getByMaterial(itemStack.getType());
+        if (prices == null)
             return;
-        }
 
+        double price = prices.getPrice() * itemStack.getAmount();
         if (price <= 0)
             return;
 
@@ -293,27 +288,28 @@ public class PortalListener implements Listener {
     }
 
     private SellPortal findPortalNear(Location location) {
-        World world = location.getWorld();
-        if (world == null) return null;
+        int chunkX = location.getBlockX() >> 4;
+        int chunkZ = location.getBlockZ() >> 4;
 
-        int bx = location.getBlockX();
-        int by = location.getBlockY();
-        int bz = location.getBlockZ();
-        int radius = plugin.getConfigUtil().getPortalSize() + 2;
+        List<SellPortal> portals = plugin.getPortalManager().getPortalsInChunk(chunkX, chunkZ);
+        if (portals == null)
+            return null;
 
-        for (int dy = -1; dy <= 1; dy++) {
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    Block b = world.getBlockAt(bx + dx, by + dy, bz + dz);
-                    if (b.getType() != Material.END_PORTAL_FRAME) continue;
+        int ix = location.getBlockX();
+        int iy = location.getBlockY();
+        int iz = location.getBlockZ();
 
-                    Location anchor = plugin.getPortalManager()
-                            .getAnchorFromFrame(locationKey(b.getLocation()));
-                    if (anchor == null) continue;
+        for (SellPortal portal : portals) {
+            Location anchor = portal.getLocation();
+            int size = portal.getSize();
+            int ax = anchor.getBlockX();
+            int ay = anchor.getBlockY();
+            int az = anchor.getBlockZ();
 
-                    SellPortal portal = plugin.getPortalManager().getPortal(anchor);
-                    if (portal != null) return portal;
-                }
+            if (ix >= ax + 1 && ix <= ax + size &&
+                    iy >= ay - 1 && iy <= ay + 1 &&
+                    iz >= az - size && iz <= az - 1) {
+                return portal;
             }
         }
 
