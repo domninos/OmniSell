@@ -7,6 +7,7 @@ import com.bgsoftware.superiorskyblock.api.data.DatabaseFilter;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.island.bank.IslandBank;
 import com.bgsoftware.superiorskyblock.api.objects.Pair;
+import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
 import net.omni.sell.OmniSell;
 import net.omni.sell.handlers.SellPortal;
 import net.omni.sell.messages.Messages;
@@ -16,7 +17,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,6 +69,24 @@ public class SuperiorSkyblock2Hook {
         return enabled;
     }
 
+    public List<Player> getOnlineIslandMembers(String islandUUID) {
+        try {
+            Island island = SuperiorSkyblockAPI.getIslandByUUID(UUID.fromString(islandUUID));
+            if (island == null) return List.of();
+
+            List<Player> online = new ArrayList<>();
+            for (SuperiorPlayer sp : island.getIslandMembers(true)) {
+                if (sp.isOnline()) {
+                    Player p = sp.asPlayer();
+                    if (p != null) online.add(p);
+                }
+            }
+            return online;
+        } catch (IllegalArgumentException e) {
+            return List.of();
+        }
+    }
+
     public boolean depositMoney(SellPortal portal, double price) {
         if (!isEnabled())
             return false;
@@ -88,7 +109,7 @@ public class SuperiorSkyblock2Hook {
     }
 
     private void startBatchProcessor() {
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             if (dirtyIslands.isEmpty())
                 return;
 
