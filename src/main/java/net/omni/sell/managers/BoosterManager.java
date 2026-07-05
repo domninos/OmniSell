@@ -164,7 +164,7 @@ public class BoosterManager {
         ActiveBooster existing = findActiveByDefinition(islandUUID, booster);
         if (existing != null && existing.isOnCooldown()) {
             plugin.sendMessage(player, Messages.BOOSTER_ON_COOLDOWN.toString()
-                    .replace("%remaining%", booster.formatDuration(existing.getRemainingCooldown())));
+                    .replace("%remaining%", booster.formatDuration(existing.getRemainingCooldown() / 1000)));
             return;
         }
 
@@ -194,7 +194,7 @@ public class BoosterManager {
 
         String durationStr = booster.durationSeconds() == -1
                 ? "permanent"
-                : booster.formatDuration(booster.durationSeconds() * 1000);
+                : booster.formatDuration(booster.durationSeconds());
 
         plugin.sendMessage(player, Messages.BOOSTER_ACTIVATED.toString()
                 .replace("%booster%", booster.id())
