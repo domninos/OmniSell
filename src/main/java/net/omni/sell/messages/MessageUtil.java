@@ -23,8 +23,8 @@ public class MessageUtil {
         return renderer.color(msg);
     }
 
-    public static void append(String command, String description, StringBuilder builder) {
-        builder.append(formatString(command, description));
+    public static void append(String command, String description, StringBuilder builder, String... aliases) {
+        builder.append(formatString(command, description, aliases));
     }
 
     public static String formatString(String command, String description, String... aliases) {
