@@ -47,7 +47,7 @@ public enum Messages {
     BOOSTER_ALREADY_ACTIVE("booster_already_active", "<red>That booster is already active on your island.</red>"),
 
     BOOSTER_NO_MONEY("booster_no_money", "<red>You need %cost% to activate this booster.</red>"),
-    BOOSTER_ONLY_ONE("booster_only_one", "<red>Only one booster can be active at a time on your island.</red>"),
+    BOOSTER_ONLY_ONE("booster_only_one", "<red>Only one booster can be active at a time on your island.</red> <gray>(%remaining% remaining)</gray>"),
 
     BOOSTER_EXPIRED("booster_expired", "<red>Booster %booster% has expired on your island.</red>"),
     BOOSTER_ACTIVATED_BROADCAST("booster_activated_broadcast", "<green>Booster</green> <gold>%booster%</gold> <green>activated on your island!</green> <gray>(%multiplier%x for %duration%)</gray>");

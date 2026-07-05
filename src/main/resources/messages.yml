@@ -40,7 +40,7 @@ booster_on_cooldown: "<red>That booster is on cooldown.</red> <gray>%remaining% 
 booster_already_active: "<red>That booster is already active on your island.</red>"
 
 booster_no_money: "<red>You need %cost% to activate this booster.</red>"
-booster_only_one: "<red>Only one booster can be active at a time on your island.</red>"
+booster_only_one: "<red>Only one booster can be active at a time on your island.</red> <gray>(%remaining% remaining)</gray>"
 
 booster_expired: "<red>Booster %booster% has expired on your island.</red>"
 booster_activated_broadcast: "<green>Booster</green> <gold>%booster%</gold> <green>activated on your island!</green> <gray>(%multiplier%x for %duration%)</gray>"

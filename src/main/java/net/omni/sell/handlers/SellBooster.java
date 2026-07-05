@@ -69,7 +69,7 @@ public record SellBooster(
         return String.join(", ", parts);
     }
 
-    public String formatDuration(long seconds) {
+    public static String formatDuration(long seconds) {
         if (seconds == -1) return "Permanent";
         if (seconds == 0) return "Instant";
         long minutes = seconds / 60;

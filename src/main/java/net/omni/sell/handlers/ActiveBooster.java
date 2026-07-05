@@ -15,4 +15,10 @@ public record ActiveBooster(int dbId, String islandUUID, SellBooster definition,
         long remaining = cooldownEnd - System.currentTimeMillis();
         return Math.max(0, remaining);
     }
+
+    public long getRemainingDuration() {
+        if (expiryTime == -1) return -1;
+        long remaining = expiryTime - System.currentTimeMillis();
+        return Math.max(0, remaining);
+    }
 }
