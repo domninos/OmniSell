@@ -12,13 +12,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.jspecify.annotations.NonNull;
+import org.bukkit.scheduler.BukkitTask;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class BoosterManager {
@@ -27,6 +23,7 @@ public class BoosterManager {
     private final List<SellBooster> boosterDefs = new ArrayList<>();
     private final Map<String, List<ActiveBooster>> activeBoosters = new ConcurrentHashMap<>();
     private final Map<String, Map<Integer, ItemStack>> cachedBoosterItems = new ConcurrentHashMap<>();
+    private final Map<String, BukkitTask> expiryTasks = new ConcurrentHashMap<>();
 
     public BoosterManager(OmniSell plugin) {
         this.plugin = plugin;
@@ -97,6 +94,7 @@ public class BoosterManager {
 
                         ActiveBooster ab = new ActiveBooster(dbId, islandUUID, def, expiryTime, cooldownEnd);
                         activeBoosters.computeIfAbsent(islandUUID, k -> Collections.synchronizedList(new ArrayList<>())).add(ab);
+                        scheduleExpiry(islandUUID, expiryTime);
 
                         counter++;
                     }
@@ -109,44 +107,19 @@ public class BoosterManager {
 
     private void startCleanupTask() {
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            List<ExpiredBoosterInfo> expired = getExpiredBoosterInfos();
+            for (Map.Entry<String, List<ActiveBooster>> entry : activeBoosters.entrySet()) {
+                String islandUUID = entry.getKey();
+                List<ActiveBooster> list = entry.getValue();
 
-            if (!expired.isEmpty()) {
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    for (ExpiredBoosterInfo info : expired) {
-                        cachedBoosterItems.remove(info.islandUUID);
-                        String message = Messages.BOOSTER_EXPIRED.toString().replace("%booster%", info.booster.id());
-
-                        if (plugin.getSuperiorSkyblock2Hook() != null) {
-                            for (Player p : plugin.getSuperiorSkyblock2Hook().getOnlineIslandMembers(info.islandUUID))
-                                plugin.sendMessage(p, message);
-                        }
+                synchronized (list) {
+                    if (list.stream().anyMatch(ActiveBooster::isExpired)) {
+                        BukkitTask existing = expiryTasks.get(islandUUID);
+                        if (existing == null || existing.isCancelled())
+                            Bukkit.getScheduler().runTask(plugin, () -> handleExpiry(islandUUID));
                     }
-                });
+                }
             }
-        }, 600L, 600L);
-    }
-
-    private @NonNull List<ExpiredBoosterInfo> getExpiredBoosterInfos() {
-        List<ExpiredBoosterInfo> expired = new ArrayList<>();
-
-        for (Map.Entry<String, List<ActiveBooster>> entry : activeBoosters.entrySet()) {
-            String islandUUID = entry.getKey();
-            List<ActiveBooster> list = entry.getValue();
-
-            synchronized (list) {
-                list.removeIf(ab -> {
-                    if (ab.isExpired()) {
-                        expired.add(new ExpiredBoosterInfo(islandUUID, ab.definition()));
-                        plugin.getDatabaseManager().deleteActiveBooster(ab.dbId());
-                        return true;
-                    }
-
-                    return false;
-                });
-            }
-        }
-        return expired;
+        }, 1200L, 1200L);
     }
 
     public SellBooster getDefinition(String id) {
@@ -156,6 +129,54 @@ public class BoosterManager {
         }
 
         return null;
+    }
+
+    private void scheduleExpiry(String islandUUID, long expiryTime) {
+        BukkitTask existing = expiryTasks.remove(islandUUID);
+        if (existing != null)
+            existing.cancel();
+
+        if (expiryTime == -1)
+            return;
+
+        long delay = expiryTime - System.currentTimeMillis();
+        if (delay <= 0) {
+            handleExpiry(islandUUID);
+            return;
+        }
+
+        long ticks = delay / 50;
+        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin, () -> handleExpiry(islandUUID), ticks);
+        expiryTasks.put(islandUUID, task);
+    }
+
+    private void handleExpiry(String islandUUID) {
+        expiryTasks.remove(islandUUID);
+        cachedBoosterItems.remove(islandUUID);
+
+        List<ActiveBooster> boosters = activeBoosters.get(islandUUID);
+        if (boosters == null) return;
+
+        String boosterId;
+        synchronized (boosters) {
+            ActiveBooster toRemove = null;
+            for (ActiveBooster ab : boosters) {
+                if (ab.isExpired()) {
+                    toRemove = ab;
+                    break;
+                }
+            }
+            if (toRemove == null) return;
+            boosterId = toRemove.definition().id();
+            boosters.remove(toRemove);
+            plugin.getDatabaseManager().deleteActiveBooster(toRemove.dbId());
+        }
+
+        String message = Messages.BOOSTER_EXPIRED.toString().replace("%booster%", boosterId);
+        if (plugin.getSuperiorSkyblock2Hook() != null) {
+            for (Player p : plugin.getSuperiorSkyblock2Hook().getOnlineIslandMembers(islandUUID))
+                plugin.sendMessage(p, message);
+        }
     }
 
     public List<SellBooster> getBoosterDefs() {
@@ -197,7 +218,7 @@ public class BoosterManager {
         ActiveBooster existing = findActiveByDefinition(islandUUID, booster);
         if (existing != null && existing.isOnCooldown()) {
             plugin.sendMessage(player, Messages.BOOSTER_ON_COOLDOWN.toString()
-                    .replace("%remaining%", booster.formatDuration(existing.getRemainingCooldown() / 1000)));
+                    .replace("%remaining%", SellBooster.formatDuration(existing.getRemainingCooldown() / 1000)));
             return;
         }
 
@@ -224,10 +245,11 @@ public class BoosterManager {
 
         ActiveBooster ab = new ActiveBooster(-1, islandUUID, booster, expiryTime, cooldownEnd);
         activeBoosters.computeIfAbsent(islandUUID, k -> Collections.synchronizedList(new ArrayList<>())).add(ab);
+        scheduleExpiry(islandUUID, expiryTime);
 
         String durationStr = booster.durationSeconds() == -1
                 ? "permanent"
-                : booster.formatDuration(booster.durationSeconds());
+                : SellBooster.formatDuration(booster.durationSeconds());
 
         plugin.sendMessage(player, Messages.BOOSTER_ACTIVATED.toString()
                 .replace("%booster%", booster.id())
@@ -246,18 +268,6 @@ public class BoosterManager {
         }
 
         cachedBoosterItems.remove(islandUUID);
-    }
-
-    public boolean isBoosterActive(String islandUUID, String boosterId) {
-        List<ActiveBooster> boosters = activeBoosters.get(islandUUID);
-
-        if (boosters == null)
-            return false;
-
-        synchronized (boosters) {
-            return boosters.stream()
-                    .anyMatch(ab -> ab.definition().id().equals(boosterId) && !ab.isExpired());
-        }
     }
 
     public boolean isAnyBoosterActive(String islandUUID) {
@@ -334,12 +344,28 @@ public class BoosterManager {
         cachedBoosterItems.put(islandUUID, items);
     }
 
+    public boolean isBoosterActive(String islandUUID, String boosterId) {
+        List<ActiveBooster> boosters = activeBoosters.get(islandUUID);
+
+        if (boosters == null)
+            return false;
+
+        synchronized (boosters) {
+            return boosters.stream()
+                    .anyMatch(ab -> ab.definition().id().equals(boosterId) && !ab.isExpired());
+        }
+    }
+
     public void invalidateBoosterCache(String islandUUID) {
         if (islandUUID != null)
             cachedBoosterItems.remove(islandUUID);
     }
 
     public void reloadDefinitions() {
+        for (BukkitTask task : expiryTasks.values())
+            task.cancel();
+        expiryTasks.clear();
+
         loadDefinitions();
 
         long now = System.currentTimeMillis();
@@ -398,18 +424,28 @@ public class BoosterManager {
             }
         }
 
+        for (Map.Entry<String, List<ActiveBooster>> entry : activeBoosters.entrySet()) {
+            synchronized (entry.getValue()) {
+                for (ActiveBooster ab : entry.getValue()) {
+                    scheduleExpiry(entry.getKey(), ab.expiryTime());
+                }
+            }
+        }
+
         cachedBoosterItems.clear();
 
         plugin.sendConsole("<green>Reloaded " + boosterDefs.size() + " booster definitions and updated active boosters.</green>");
     }
 
     public void shutdown() {
+        for (BukkitTask task : expiryTasks.values())
+            task.cancel();
+        expiryTasks.clear();
+
         plugin.getDatabaseManager().flushBoosterOps();
         cachedBoosterItems.clear();
         activeBoosters.clear();
         boosterDefs.clear();
     }
 
-    private record ExpiredBoosterInfo(String islandUUID, SellBooster booster) {
-    }
 }
